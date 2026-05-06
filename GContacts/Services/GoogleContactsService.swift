@@ -1,6 +1,6 @@
 import Foundation
 
-protocol GoogleContactsService: Sendable {
+protocol GoogleContactsService {
     func fetchContacts() async throws -> [Contact]
     func fetchLabels() async throws -> [ContactLabel]
     func createContact(_ contact: Contact) async throws -> Contact
@@ -21,4 +21,3 @@ enum GoogleContactsServiceError: LocalizedError {
         }
     }
 }
-

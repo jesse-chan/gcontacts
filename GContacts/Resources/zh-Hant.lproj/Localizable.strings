@@ -59,6 +59,9 @@
 "organization.department" = "部門";
 "organization.name" = "組織";
 "organization.title" = "職稱";
+"peopleAPI.invalidResponse" = "Google People API 回傳了無效回應。";
+"peopleAPI.missingResourceName" = "這個項目缺少 Google resource name。";
+"peopleAPI.requestFailed %lld %@" = "Google People API 請求失敗（%lld）：%@";
 "relation.person" = "對象";
 "sample.label.friends" = "朋友";
 "sample.label.work" = "工作";

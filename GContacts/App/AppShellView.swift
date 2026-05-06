@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct AppShellView: View {
+    @Environment(ContactStore.self) private var contactStore
+    @Environment(GoogleAuthService.self) private var googleAuthService
+
     var body: some View {
         TabView {
             NavigationStack {
@@ -24,6 +27,15 @@ struct AppShellView: View {
                 Label("tab.settings", systemImage: "gearshape")
             }
         }
+        .onChange(of: googleAuthService.user) { _, user in
+            Task {
+                if user == nil {
+                    contactStore.clear()
+                } else {
+                    await contactStore.load()
+                }
+            }
+        }
     }
 }
 
@@ -31,4 +43,3 @@ struct AppShellView: View {
     AppShellView()
         .environment(ContactStore(service: MockGoogleContactsService()))
 }
-

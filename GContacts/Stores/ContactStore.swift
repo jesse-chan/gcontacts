@@ -28,6 +28,13 @@ final class ContactStore {
         isLoading = false
     }
 
+    func clear() {
+        contacts = []
+        labels = []
+        errorMessage = nil
+        isLoading = false
+    }
+
     func save(_ contact: Contact) async {
         do {
             if contacts.contains(where: { $0.id == contact.id }) {
@@ -106,4 +113,3 @@ final class ContactStore {
         contacts[index] = contact
     }
 }
-

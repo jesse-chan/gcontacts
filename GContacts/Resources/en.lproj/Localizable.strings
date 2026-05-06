@@ -59,6 +59,9 @@
 "organization.department" = "Department";
 "organization.name" = "Organization";
 "organization.title" = "Title";
+"peopleAPI.invalidResponse" = "Google People API returned an invalid response.";
+"peopleAPI.missingResourceName" = "This item is missing a Google resource name.";
+"peopleAPI.requestFailed %lld %@" = "Google People API request failed (%lld): %@";
 "relation.person" = "Person";
 "sample.label.friends" = "Friends";
 "sample.label.work" = "Work";

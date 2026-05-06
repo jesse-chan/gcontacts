@@ -24,6 +24,7 @@
 		AA0000000000000000000015 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000114 /* GoogleAuthService.swift */; };
 		AA0000000000000000000016 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000C02 /* GoogleSignIn */; };
 		AA0000000000000000000017 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000C03 /* GoogleSignInSwift */; };
+		AA0000000000000000000018 /* GooglePeopleContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000116 /* GooglePeopleContactsService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +43,7 @@
 		AA0000000000000000000113 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000114 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
 		AA0000000000000000000115 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA0000000000000000000116 /* GooglePeopleContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GooglePeopleContactsService.swift; sourceTree = "<group>"; };
 		AA0000000000000000000201 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		AA0000000000000000000202 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		AA0000000000000000000300 /* GContacts.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GContacts.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -106,6 +108,7 @@
 				AA0000000000000000000106 /* GoogleContactsService.swift */,
 				AA0000000000000000000107 /* MockGoogleContactsService.swift */,
 				AA0000000000000000000114 /* GoogleAuthService.swift */,
+				AA0000000000000000000116 /* GooglePeopleContactsService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -238,6 +241,7 @@
 				AA0000000000000000000012 /* LabelsView.swift in Sources */,
 				AA0000000000000000000013 /* SettingsView.swift in Sources */,
 				AA0000000000000000000015 /* GoogleAuthService.swift in Sources */,
+				AA0000000000000000000018 /* GooglePeopleContactsService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

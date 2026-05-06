@@ -46,3 +46,5 @@ xcodebuild -project GContacts.xcodeproj \
 - `contactGroups.update`
 - `contactGroups.delete`
 - `contactGroups.members.modify`
+
+`GooglePeopleContactsService` currently implements the direct REST calls for contact and contact group CRUD using the signed-in Google access token.
