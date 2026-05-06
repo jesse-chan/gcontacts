@@ -29,6 +29,19 @@
 "field.key" = "Key";
 "field.label" = "Label";
 "field.value" = "Value";
+"googleAuth.configurationNote" = "Set GOOGLE_IOS_CLIENT_ID and GOOGLE_REVERSED_CLIENT_ID in the target build settings after creating an iOS OAuth client in Google Cloud.";
+"googleAuth.email" = "Email";
+"googleAuth.emptyResult" = "Google Sign-In did not return a user.";
+"googleAuth.missingAccessToken" = "Google Sign-In did not return an access token.";
+"googleAuth.name" = "Name";
+"googleAuth.noPresenter" = "The sign-in screen could not be presented.";
+"googleAuth.notConfigured" = "Google Sign-In is not configured yet.";
+"googleAuth.notSignedIn" = "You are not signed in to Google.";
+"googleAuth.restoring" = "Restoring Google sign-in...";
+"googleAuth.signedIn" = "Signed in";
+"googleAuth.signedOut" = "Signed out";
+"googleAuth.signingIn" = "Signing in...";
+"googleAuth.signOut" = "Sign out";
 "labels.add" = "Add label";
 "labels.all" = "All labels";
 "labels.count %lld" = "%lld contacts";
@@ -77,4 +90,3 @@
 "theme.dark" = "Dark";
 "theme.light" = "Light";
 "theme.system" = "System";
-

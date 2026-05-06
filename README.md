@@ -30,8 +30,12 @@ xcodebuild -project GContacts.xcodeproj \
 
 ## Next integration point
 
-`GoogleContactsService` is the boundary for replacing mock data with real Google integration.
-The next production step is to add Google OAuth sign-in, then implement the service with the Google People API:
+`GoogleAuthService` owns Google Sign-In and token refresh. Before running a real sign-in flow, create an iOS OAuth client in Google Cloud for bundle ID `com.jessechan.gcontacts`, then set these target build settings:
+
+- `GOOGLE_IOS_CLIENT_ID`
+- `GOOGLE_REVERSED_CLIENT_ID`
+
+`GoogleContactsService` is the boundary for replacing mock data with real Google People API integration:
 
 - `people.connections.list` for contacts
 - `people.createContact`
@@ -42,4 +46,3 @@ The next production step is to add Google OAuth sign-in, then implement the serv
 - `contactGroups.update`
 - `contactGroups.delete`
 - `contactGroups.members.modify`
-

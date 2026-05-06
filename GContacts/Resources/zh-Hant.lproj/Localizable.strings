@@ -29,6 +29,19 @@
 "field.key" = "鍵";
 "field.label" = "標籤";
 "field.value" = "值";
+"googleAuth.configurationNote" = "在 Google Cloud 建立 iOS OAuth client 後，請到 target build settings 設定 GOOGLE_IOS_CLIENT_ID 與 GOOGLE_REVERSED_CLIENT_ID。";
+"googleAuth.email" = "電子郵件";
+"googleAuth.emptyResult" = "Google Sign-In 沒有回傳使用者。";
+"googleAuth.missingAccessToken" = "Google Sign-In 沒有回傳 access token。";
+"googleAuth.name" = "名稱";
+"googleAuth.noPresenter" = "無法顯示登入畫面。";
+"googleAuth.notConfigured" = "尚未設定 Google Sign-In。";
+"googleAuth.notSignedIn" = "尚未登入 Google。";
+"googleAuth.restoring" = "正在還原 Google 登入狀態...";
+"googleAuth.signedIn" = "已登入";
+"googleAuth.signedOut" = "未登入";
+"googleAuth.signingIn" = "正在登入...";
+"googleAuth.signOut" = "登出";
 "labels.add" = "新增標籤";
 "labels.all" = "所有標籤";
 "labels.count %lld" = "%lld 位聯絡人";
@@ -77,4 +90,3 @@
 "theme.dark" = "深色";
 "theme.light" = "淺色";
 "theme.system" = "跟隨系統";
-
