@@ -11,6 +11,8 @@ actor MockGoogleContactsService: GoogleContactsService {
                 id: "sample-ada",
                 resourceName: "people/sample-ada",
                 etag: "sample-etag-1",
+                sourceID: "sample-source-1",
+                photoURL: nil,
                 names: [ContactName(displayName: "Ada Lovelace", givenName: "Ada", familyName: "Lovelace")],
                 nicknames: [LabeledValue(label: "short", value: "Ada")],
                 emailAddresses: [LabeledValue(label: "work", value: "ada@example.com")],
@@ -29,6 +31,8 @@ actor MockGoogleContactsService: GoogleContactsService {
                 id: "sample-grace",
                 resourceName: "people/sample-grace",
                 etag: "sample-etag-2",
+                sourceID: "sample-source-2",
+                photoURL: nil,
                 names: [ContactName(displayName: "Grace Hopper", givenName: "Grace", familyName: "Hopper")],
                 nicknames: [],
                 emailAddresses: [LabeledValue(label: "work", value: "grace@example.com")],
@@ -112,4 +116,3 @@ actor MockGoogleContactsService: GoogleContactsService {
         }
     }
 }
-

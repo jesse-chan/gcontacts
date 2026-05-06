@@ -1,9 +1,13 @@
 import Foundation
 
 struct Contact: Identifiable, Hashable {
+    static let starredLabelID = "contactGroups/starred"
+
     var id: String
     var resourceName: String?
     var etag: String?
+    var sourceID: String?
+    var photoURL: URL?
     var names: [ContactName]
     var nicknames: [LabeledValue]
     var emailAddresses: [LabeledValue]
@@ -25,10 +29,16 @@ struct Contact: Identifiable, Hashable {
             ?? String(localized: "contact.unnamed")
     }
 
+    var isStarred: Bool {
+        labelIDs.contains(Self.starredLabelID)
+    }
+
     static let empty = Contact(
         id: UUID().uuidString,
         resourceName: nil,
         etag: nil,
+        sourceID: nil,
+        photoURL: nil,
         names: [ContactName()],
         nicknames: [],
         emailAddresses: [],
@@ -108,4 +118,3 @@ private extension String {
         trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : self
     }
 }
-

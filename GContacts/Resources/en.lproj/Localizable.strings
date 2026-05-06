@@ -8,9 +8,13 @@
 "action.addRelation" = "Add relation";
 "action.addUserDefined" = "Add custom field";
 "action.cancel" = "Cancel";
+"action.delete" = "Delete";
 "action.edit" = "Edit";
+"action.more" = "More";
 "action.ok" = "OK";
 "action.save" = "Save";
+"action.star" = "Star";
+"action.unstar" = "Unstar";
 "address.city" = "City";
 "address.country" = "Country";
 "address.postalCode" = "Postal code";
@@ -18,6 +22,9 @@
 "address.street" = "Street address";
 "contact.unnamed" = "Unnamed contact";
 "contacts.add" = "Add contact";
+"contacts.delete.message" = "This contact will be deleted from Google Contacts.";
+"contacts.delete.title" = "Delete contact?";
+"contacts.favorites %lld" = "Favorites (%lld)";
 "contacts.search" = "Search contacts";
 "contacts.title" = "Contacts";
 "date.day" = "Day";

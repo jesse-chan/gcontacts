@@ -17,6 +17,7 @@ final class GooglePeopleContactsService: GoogleContactsService {
         "nicknames",
         "organizations",
         "phoneNumbers",
+        "photos",
         "relations",
         "urls",
         "userDefined"
@@ -260,11 +261,12 @@ private struct PeoplePerson: Codable {
     var biographies: [PeopleBiography]?
     var userDefined: [PeopleUserDefined]?
     var memberships: [PeopleMembership]?
+    var photos: [PeoplePhoto]?
 
     init(contact: Contact, includeMetadata: Bool) {
         resourceName = contact.resourceName
         etag = contact.etag
-        metadata = includeMetadata ? PeoplePersonMetadata(contactEtag: contact.etag) : nil
+        metadata = includeMetadata ? PeoplePersonMetadata(contact: contact) : nil
         names = contact.names.nonEmptyPeopleValues { PeopleName(name: $0) }
         nicknames = contact.nicknames.nonEmptyPeopleValues { PeopleLabeledValue(labeledValue: $0) }
         emailAddresses = contact.emailAddresses.nonEmptyPeopleValues { PeopleLabeledValue(labeledValue: $0) }
@@ -278,6 +280,7 @@ private struct PeoplePerson: Codable {
         biographies = contact.biographies.nonEmptyPeopleValues { PeopleBiography(value: $0) }
         userDefined = contact.userDefined.nonEmptyPeopleValues { PeopleUserDefined(field: $0) }
         memberships = contact.labelIDs.sorted().map { PeopleMembership(contactGroupResourceName: $0) }
+        photos = nil
     }
 }
 
@@ -288,8 +291,8 @@ private struct PeoplePersonMetadata: Codable {
         self.sources = sources
     }
 
-    init(contactEtag: String?) {
-        sources = [PeopleSource(type: "CONTACT", etag: contactEtag)]
+    init(contact: Contact) {
+        sources = [PeopleSource(type: "CONTACT", id: contact.sourceID, etag: contact.etag)]
     }
 }
 
@@ -427,6 +430,11 @@ private struct PeopleContactGroupMembership: Codable {
     var contactGroupResourceName: String?
 }
 
+private struct PeoplePhoto: Codable {
+    var url: String?
+    var `default`: Bool?
+}
+
 private struct PeopleContactGroup: Codable {
     var resourceName: String? = nil
     var name: String? = nil
@@ -443,6 +451,8 @@ private extension Contact {
             id: resourceName ?? UUID().uuidString,
             resourceName: resourceName,
             etag: contactSource?.etag ?? person.etag,
+            sourceID: contactSource?.id,
+            photoURL: person.photos?.first { $0.default != true }?.url.flatMap(URL.init(string:)),
             names: person.names?.map(ContactName.init(name:)) ?? [],
             nicknames: person.nicknames?.map(LabeledValue.init(labeledValue:)) ?? [],
             emailAddresses: person.emailAddresses?.map(LabeledValue.init(labeledValue:)) ?? [],

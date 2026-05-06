@@ -2,8 +2,10 @@ import SwiftUI
 
 struct ContactDetailView: View {
     @Environment(ContactStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
     @State private var draft: Contact
     @State private var isEditing = false
+    @State private var isConfirmingDelete = false
 
     init(contact: Contact) {
         _draft = State(initialValue: contact)
@@ -11,6 +13,47 @@ struct ContactDetailView: View {
 
     var body: some View {
         List {
+            Section {
+                HStack(spacing: 28) {
+                    Button {
+                        Task { await toggleStar() }
+                    } label: {
+                        Image(systemName: draft.isStarred ? "star.fill" : "star")
+                            .font(.title3)
+                            .foregroundStyle(draft.isStarred ? .yellow : .primary)
+                            .frame(width: 44, height: 36)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(draft.isStarred ? Text("action.unstar") : Text("action.star"))
+
+                    Button {
+                        isEditing = true
+                    } label: {
+                        Text("action.edit")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 28)
+                            .padding(.vertical, 10)
+                            .background(.blue, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(role: .destructive) {
+                        isConfirmingDelete = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.title3)
+                            .foregroundStyle(.primary)
+                            .frame(width: 44, height: 36)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("action.delete"))
+                }
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+            }
+            .listSectionSpacing(.compact)
+
             Section("section.labels") {
                 Text(store.labelNames(for: draft.labelIDs).emptyFallback(String(localized: "labels.none")))
             }
@@ -29,20 +72,37 @@ struct ContactDetailView: View {
             ContactFieldSection(title: "section.userDefined", items: draft.userDefined.map { "\($0.key): \($0.value)" })
         }
         .navigationTitle(draft.displayName)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("action.edit") {
-                    isEditing = true
-                }
-            }
-        }
         .sheet(isPresented: $isEditing) {
             ContactEditorView(contact: draft)
+        }
+        .confirmationDialog("contacts.delete.title", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+            Button("action.delete", role: .destructive) {
+                Task {
+                    await store.delete(draft)
+                    dismiss()
+                }
+            }
+            Button("action.cancel", role: .cancel) {}
+        } message: {
+            Text("contacts.delete.message")
         }
         .onChange(of: store.contacts) { _, contacts in
             if let updated = contacts.first(where: { $0.id == draft.id }) {
                 draft = updated
             }
+        }
+    }
+
+    private func toggleStar() async {
+        var updated = draft
+        if updated.isStarred {
+            updated.labelIDs.remove(Contact.starredLabelID)
+        } else {
+            updated.labelIDs.insert(Contact.starredLabelID)
+        }
+
+        if let saved = await store.save(updated) {
+            draft = saved
         }
     }
 }
@@ -77,4 +137,3 @@ private extension Array where Element == String {
             .joined(separator: separator)
     }
 }
-

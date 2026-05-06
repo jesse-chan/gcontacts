@@ -35,27 +35,42 @@ final class ContactStore {
         isLoading = false
     }
 
-    func save(_ contact: Contact) async {
+    @discardableResult
+    func save(_ contact: Contact) async -> Contact? {
         do {
             if contacts.contains(where: { $0.id == contact.id }) {
                 let updated = try await service.updateContact(contact)
                 replace(updated)
+                labels = try await service.fetchLabels()
+                return updated
             } else {
                 let created = try await service.createContact(contact)
                 contacts.append(created)
+                labels = try await service.fetchLabels()
+                return created
             }
-            labels = try await service.fetchLabels()
         } catch {
             errorMessage = error.localizedDescription
+            return nil
         }
     }
 
     func deleteContacts(at offsets: IndexSet) async {
+        let contactsToDelete = offsets.map { contacts[$0] }
+        await delete(contactsToDelete)
+    }
+
+    func delete(_ contact: Contact) async {
+        await delete([contact])
+    }
+
+    func delete(_ contactsToDelete: [Contact]) async {
         do {
-            for index in offsets {
-                try await service.deleteContact(id: contacts[index].id)
+            for contact in contactsToDelete {
+                try await service.deleteContact(id: contact.resourceName ?? contact.id)
             }
-            contacts.remove(atOffsets: offsets)
+            let idsToDelete = Set(contactsToDelete.map(\.id))
+            contacts.removeAll { idsToDelete.contains($0.id) }
             labels = try await service.fetchLabels()
         } catch {
             errorMessage = error.localizedDescription

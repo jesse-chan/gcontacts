@@ -8,9 +8,13 @@
 "action.addRelation" = "新增關係";
 "action.addUserDefined" = "新增自訂欄位";
 "action.cancel" = "取消";
+"action.delete" = "刪除";
 "action.edit" = "編輯";
+"action.more" = "更多";
 "action.ok" = "確定";
 "action.save" = "儲存";
+"action.star" = "加上星號";
+"action.unstar" = "移除星號";
 "address.city" = "城市";
 "address.country" = "國家";
 "address.postalCode" = "郵遞區號";
@@ -18,6 +22,9 @@
 "address.street" = "街道地址";
 "contact.unnamed" = "未命名聯絡人";
 "contacts.add" = "新增聯絡人";
+"contacts.delete.message" = "這位聯絡人會從 Google Contacts 刪除。";
+"contacts.delete.title" = "要刪除聯絡人嗎？";
+"contacts.favorites %lld" = "我的最愛（%lld）";
 "contacts.search" = "搜尋聯絡人";
 "contacts.title" = "聯絡人";
 "date.day" = "日";
