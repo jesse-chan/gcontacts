@@ -89,14 +89,17 @@ final class ContactStore {
         }
     }
 
-    func updateLabel(_ label: ContactLabel) async {
+    @discardableResult
+    func updateLabel(_ label: ContactLabel) async -> Bool {
         do {
             let updated = try await service.updateLabel(label)
             if let index = labels.firstIndex(where: { $0.id == updated.id }) {
                 labels[index] = updated
             }
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
@@ -106,6 +109,16 @@ final class ContactStore {
                 try await service.deleteLabel(id: labels[index].id)
             }
             labels.remove(atOffsets: offsets)
+            contacts = try await service.fetchContacts()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func deleteLabel(_ label: ContactLabel) async {
+        do {
+            try await service.deleteLabel(id: label.id)
+            labels.removeAll { $0.id == label.id }
             contacts = try await service.fetchContacts()
         } catch {
             errorMessage = error.localizedDescription

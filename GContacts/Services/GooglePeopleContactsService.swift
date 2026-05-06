@@ -143,7 +143,11 @@ final class GooglePeopleContactsService: GoogleContactsService {
         }
 
         let url = baseURL.appending(path: resourceName)
-        let body = ContactGroupMutation(contactGroup: PeopleContactGroup(resourceName: resourceName, name: label.name))
+        let body = ContactGroupMutation(
+            contactGroup: PeopleContactGroup(resourceName: resourceName, etag: label.etag, name: label.name),
+            updateGroupFields: "name",
+            readGroupFields: "metadata,groupType,memberCount,name"
+        )
         let updated: PeopleContactGroup = try await send(url, method: "PUT", body: body)
         return ContactLabel(group: updated)
     }
@@ -242,6 +246,8 @@ private struct ContactGroupsResponse: Decodable {
 
 private struct ContactGroupMutation: Encodable {
     let contactGroup: PeopleContactGroup
+    var updateGroupFields: String? = nil
+    var readGroupFields: String? = nil
 }
 
 private struct PeoplePerson: Codable {
@@ -437,6 +443,7 @@ private struct PeoplePhoto: Codable {
 
 private struct PeopleContactGroup: Codable {
     var resourceName: String? = nil
+    var etag: String? = nil
     var name: String? = nil
     var groupType: String? = nil
     var memberCount: Int? = nil
@@ -548,6 +555,7 @@ private extension ContactLabel {
         self.init(
             id: resourceName ?? UUID().uuidString,
             resourceName: resourceName,
+            etag: group.etag,
             name: group.name ?? "",
             contactCount: group.memberCount ?? 0
         )

@@ -53,6 +53,8 @@
 "labels.all" = "All labels";
 "labels.count %lld" = "%lld contacts";
 "labels.create" = "Create label";
+"labels.delete.message %@" = "\"%@\" will be deleted. Contacts in this label will not be deleted.";
+"labels.delete.title" = "Delete label?";
 "labels.edit" = "Edit label";
 "labels.name" = "Label name";
 "labels.none" = "No labels";

@@ -84,6 +84,7 @@ actor MockGoogleContactsService: GoogleContactsService {
         let label = ContactLabel(
             id: UUID().uuidString,
             resourceName: nil,
+            etag: UUID().uuidString,
             name: name,
             contactCount: 0
         )

@@ -53,6 +53,8 @@
 "labels.all" = "所有標籤";
 "labels.count %lld" = "%lld 位聯絡人";
 "labels.create" = "建立標籤";
+"labels.delete.message %@" = "「%@」會被刪除，這個標籤內的聯絡人不會被刪除。";
+"labels.delete.title" = "要刪除標籤嗎？";
 "labels.edit" = "編輯標籤";
 "labels.name" = "標籤名稱";
 "labels.none" = "沒有標籤";
