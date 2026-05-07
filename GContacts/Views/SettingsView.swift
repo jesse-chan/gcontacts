@@ -4,6 +4,7 @@ import GoogleSignInSwift
 struct SettingsView: View {
     @Environment(GoogleAuthService.self) private var googleAuth
     @AppStorage("appTheme") private var appTheme: AppTheme = .system
+    @AppStorage("appLanguage") private var appLanguage: AppLanguage = .system
 
     var body: some View {
         Form {
@@ -51,6 +52,13 @@ struct SettingsView: View {
             }
 
             Section("settings.language") {
+                Picker("settings.languageSelection", selection: $appLanguage) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(String(localized: language.localizedTitle)).tag(language)
+                    }
+                }
+                .pickerStyle(.menu)
+
                 Text("settings.languageNote")
                     .font(.footnote)
                     .foregroundStyle(.secondary)

@@ -6,6 +6,7 @@ struct GContactsApp: App {
     @State private var contactStore: ContactStore
     @State private var googleAuthService: GoogleAuthService
     @AppStorage("appTheme") private var appTheme: AppTheme = .system
+    @AppStorage("appLanguage") private var appLanguage: AppLanguage = .system
 
     init() {
         let authService = GoogleAuthService()
@@ -19,6 +20,7 @@ struct GContactsApp: App {
                 .environment(contactStore)
                 .environment(googleAuthService)
                 .preferredColorScheme(appTheme.colorScheme)
+                .environment(\.locale, appLanguage.locale)
                 .onAppear {
                     googleAuthService.restorePreviousSignIn()
                 }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct Contact: Identifiable, Hashable {
+struct Contact: Identifiable, Hashable, Codable {
     static let starredLabelID = "contactGroups/starred"
 
     var id: String
@@ -55,7 +55,7 @@ struct Contact: Identifiable, Hashable {
     )
 }
 
-struct ContactName: Identifiable, Hashable {
+struct ContactName: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var displayName = ""
     var givenName = ""
@@ -65,13 +65,13 @@ struct ContactName: Identifiable, Hashable {
     var honorificSuffix = ""
 }
 
-struct LabeledValue: Identifiable, Hashable {
+struct LabeledValue: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var label = ""
     var value = ""
 }
 
-struct PostalAddress: Identifiable, Hashable {
+struct PostalAddress: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var label = ""
     var streetAddress = ""
@@ -81,33 +81,33 @@ struct PostalAddress: Identifiable, Hashable {
     var country = ""
 }
 
-struct Organization: Identifiable, Hashable {
+struct Organization: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var name = ""
     var title = ""
     var department = ""
 }
 
-struct ContactDate: Identifiable, Hashable {
+struct ContactDate: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var year = ""
     var month = ""
     var day = ""
 }
 
-struct ContactEvent: Identifiable, Hashable {
+struct ContactEvent: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var label = ""
     var date = ContactDate()
 }
 
-struct Relation: Identifiable, Hashable {
+struct Relation: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var label = ""
     var person = ""
 }
 
-struct UserDefinedField: Identifiable, Hashable {
+struct UserDefinedField: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var key = ""
     var value = ""

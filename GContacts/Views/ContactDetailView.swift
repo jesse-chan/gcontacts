@@ -14,6 +14,14 @@ struct ContactDetailView: View {
     var body: some View {
         List {
             Section {
+                ContactAvatarView(contact: draft, size: 104)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .listRowBackground(Color.clear)
+            }
+            .listSectionSpacing(.compact)
+
+            Section {
                 HStack(spacing: 28) {
                     Button {
                         Task { await toggleStar() }
@@ -54,8 +62,11 @@ struct ContactDetailView: View {
             }
             .listSectionSpacing(.compact)
 
-            Section("section.labels") {
-                Text(store.labelNames(for: draft.labelIDs).emptyFallback(String(localized: "labels.none")))
+            let labels = store.labelNames(for: draft.labelIDs)
+            if !labels.isBlank {
+                Section("section.labels") {
+                    Text(labels)
+                }
             }
 
             ContactFieldSection(title: "section.names", items: draft.names.map(\.displayName))
@@ -112,12 +123,10 @@ private struct ContactFieldSection: View {
     let items: [String]
 
     var body: some View {
-        Section(title) {
-            if items.filter({ !$0.isEmpty }).isEmpty {
-                Text("field.empty")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(items.filter { !$0.isEmpty }, id: \.self) { item in
+        let visibleItems = items.filter { !$0.isBlank }
+        if !visibleItems.isEmpty {
+            Section(title) {
+                ForEach(visibleItems, id: \.self) { item in
                     Text(item)
                 }
             }
@@ -126,8 +135,8 @@ private struct ContactFieldSection: View {
 }
 
 private extension String {
-    func emptyFallback(_ fallback: String) -> String {
-        trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? fallback : self
+    var isBlank: Bool {
+        trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 

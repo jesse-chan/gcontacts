@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		AA0000000000000000000001 /* GContactsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000101 /* GContactsApp.swift */; };
 		AA0000000000000000000002 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000102 /* AppTheme.swift */; };
+		AA000000000000000000001A /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000118 /* AppLanguage.swift */; };
 		AA0000000000000000000003 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000103 /* AppShellView.swift */; };
 		AA0000000000000000000004 /* Contact.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000104 /* Contact.swift */; };
 		AA0000000000000000000005 /* ContactLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000105 /* ContactLabel.swift */; };
@@ -16,6 +17,7 @@
 		AA0000000000000000000007 /* MockGoogleContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000107 /* MockGoogleContactsService.swift */; };
 		AA0000000000000000000008 /* ContactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000108 /* ContactStore.swift */; };
 		AA0000000000000000000009 /* ContactsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000109 /* ContactsListView.swift */; };
+		AA000000000000000000001B /* ContactAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000119 /* ContactAvatarView.swift */; };
 		AA0000000000000000000010 /* ContactDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000110 /* ContactDetailView.swift */; };
 		AA0000000000000000000011 /* ContactEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000111 /* ContactEditorView.swift */; };
 		AA0000000000000000000012 /* LabelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000112 /* LabelsView.swift */; };
@@ -31,6 +33,7 @@
 /* Begin PBXFileReference section */
 		AA0000000000000000000101 /* GContactsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GContactsApp.swift; sourceTree = "<group>"; };
 		AA0000000000000000000102 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		AA0000000000000000000118 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
 		AA0000000000000000000103 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000104 /* Contact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contact.swift; sourceTree = "<group>"; };
 		AA0000000000000000000105 /* ContactLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactLabel.swift; sourceTree = "<group>"; };
@@ -38,6 +41,7 @@
 		AA0000000000000000000107 /* MockGoogleContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockGoogleContactsService.swift; sourceTree = "<group>"; };
 		AA0000000000000000000108 /* ContactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactStore.swift; sourceTree = "<group>"; };
 		AA0000000000000000000109 /* ContactsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsListView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000119 /* ContactAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactAvatarView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000110 /* ContactDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDetailView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000111 /* ContactEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactEditorView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000112 /* LabelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelsView.swift; sourceTree = "<group>"; };
@@ -90,6 +94,7 @@
 			children = (
 				AA0000000000000000000101 /* GContactsApp.swift */,
 				AA0000000000000000000102 /* AppTheme.swift */,
+				AA0000000000000000000118 /* AppLanguage.swift */,
 				AA0000000000000000000103 /* AppShellView.swift */,
 			);
 			path = App;
@@ -127,6 +132,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000109 /* ContactsListView.swift */,
+				AA0000000000000000000119 /* ContactAvatarView.swift */,
 				AA0000000000000000000110 /* ContactDetailView.swift */,
 				AA0000000000000000000111 /* ContactEditorView.swift */,
 				AA0000000000000000000112 /* LabelsView.swift */,
@@ -233,6 +239,7 @@
 			files = (
 				AA0000000000000000000001 /* GContactsApp.swift in Sources */,
 				AA0000000000000000000002 /* AppTheme.swift in Sources */,
+				AA000000000000000000001A /* AppLanguage.swift in Sources */,
 				AA0000000000000000000003 /* AppShellView.swift in Sources */,
 				AA0000000000000000000004 /* Contact.swift in Sources */,
 				AA0000000000000000000005 /* ContactLabel.swift in Sources */,
@@ -240,6 +247,7 @@
 				AA0000000000000000000007 /* MockGoogleContactsService.swift in Sources */,
 				AA0000000000000000000008 /* ContactStore.swift in Sources */,
 				AA0000000000000000000009 /* ContactsListView.swift in Sources */,
+				AA000000000000000000001B /* ContactAvatarView.swift in Sources */,
 				AA0000000000000000000010 /* ContactDetailView.swift in Sources */,
 				AA0000000000000000000011 /* ContactEditorView.swift in Sources */,
 				AA0000000000000000000012 /* LabelsView.swift in Sources */,

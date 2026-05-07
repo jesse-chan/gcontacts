@@ -23,50 +23,56 @@ struct ContactsListView: View {
     }
 
     var body: some View {
-        List {
-            if store.isLoading {
-                ProgressView()
-            }
+        VStack(spacing: 0) {
+            ContactSearchField(text: $searchText)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
 
-            if !favoriteContacts.isEmpty {
-                Section {
-                    ForEach(favoriteContacts) { contact in
-                        NavigationLink(value: contact) {
-                            ContactRowView(contact: contact, labels: store.labelNames(for: contact.labelIDs))
+            List {
+                if store.isLoading {
+                    ProgressView()
+                }
+
+                if !favoriteContacts.isEmpty {
+                    Section {
+                        ForEach(favoriteContacts) { contact in
+                            NavigationLink(value: contact) {
+                                ContactRowView(contact: contact, labels: store.labelNames(for: contact.labelIDs))
+                            }
+                        }
+                        .onDelete { offsets in
+                            let contactsToDelete = offsets.map { favoriteContacts[$0] }
+                            Task { await store.delete(contactsToDelete) }
+                        }
+                    } header: {
+                        Label {
+                            Text("contacts.favorites \(favoriteContacts.count)")
+                        } icon: {
+                            Image(systemName: "star.fill")
                         }
                     }
-                    .onDelete { offsets in
-                        let contactsToDelete = offsets.map { favoriteContacts[$0] }
-                        Task { await store.delete(contactsToDelete) }
-                    }
-                } header: {
-                    Label {
-                        Text("contacts.favorites \(favoriteContacts.count)")
-                    } icon: {
-                        Image(systemName: "star.fill")
+                }
+
+                if !regularContacts.isEmpty {
+                    Section("contacts.title") {
+                        ForEach(regularContacts) { contact in
+                            NavigationLink(value: contact) {
+                                ContactRowView(contact: contact, labels: store.labelNames(for: contact.labelIDs))
+                            }
+                        }
+                        .onDelete { offsets in
+                            let contactsToDelete = offsets.map { regularContacts[$0] }
+                            Task { await store.delete(contactsToDelete) }
+                        }
                     }
                 }
             }
-
-            if !regularContacts.isEmpty {
-                Section("contacts.title") {
-                    ForEach(regularContacts) { contact in
-                        NavigationLink(value: contact) {
-                            ContactRowView(contact: contact, labels: store.labelNames(for: contact.labelIDs))
-                        }
-                    }
-                    .onDelete { offsets in
-                        let contactsToDelete = offsets.map { regularContacts[$0] }
-                        Task { await store.delete(contactsToDelete) }
-                    }
-                }
-            }
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle("contacts.title")
         .navigationDestination(for: Contact.self) { contact in
             ContactDetailView(contact: contact)
         }
-        .searchable(text: $searchText, prompt: "contacts.search")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -92,6 +98,36 @@ struct ContactsListView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
+    }
+}
+
+private struct ContactSearchField: View {
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+
+            TextField("contacts.search", text: $text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("contacts.search.clear")
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 44)
+        .background(Color(.secondarySystemBackground), in: Capsule())
     }
 }
 
@@ -121,72 +157,5 @@ private struct ContactRowView: View {
             }
         }
         .padding(.vertical, 4)
-    }
-}
-
-private struct ContactAvatarView: View {
-    let contact: Contact
-
-    var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            avatar
-
-            if contact.isStarred {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 18, height: 18)
-                    .background(.yellow, in: Circle())
-                    .overlay {
-                        Circle()
-                            .stroke(.background, lineWidth: 2)
-                    }
-                    .offset(x: 2, y: 2)
-            }
-        }
-        .frame(width: 48, height: 48)
-        .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private var avatar: some View {
-        if let photoURL = contact.photoURL {
-            AsyncImage(url: photoURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                case .failure, .empty:
-                    fallbackAvatar
-                @unknown default:
-                    fallbackAvatar
-                }
-            }
-            .frame(width: 48, height: 48)
-            .clipShape(Circle())
-        } else {
-            fallbackAvatar
-        }
-    }
-
-    private var fallbackAvatar: some View {
-        Circle()
-            .fill(avatarColor)
-            .overlay {
-                Text(initial)
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(.white)
-            }
-    }
-
-    private var initial: String {
-        contact.displayName.trimmingCharacters(in: .whitespacesAndNewlines).first.map(String.init) ?? "?"
-    }
-
-    private var avatarColor: Color {
-        let colors: [Color] = [.purple, .blue, .teal, .green, .orange, .pink, .indigo]
-        let hash = abs(contact.displayName.unicodeScalars.reduce(0) { ($0 &* 31) &+ Int($1.value) })
-        return colors[hash % colors.count]
     }
 }
