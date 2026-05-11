@@ -63,6 +63,47 @@ struct ContactName: Identifiable, Hashable, Codable {
     var middleName = ""
     var honorificPrefix = ""
     var honorificSuffix = ""
+    var phoneticGivenName = ""
+    var phoneticMiddleName = ""
+    var phoneticFamilyName = ""
+
+    init(
+        id: String = UUID().uuidString,
+        displayName: String = "",
+        givenName: String = "",
+        familyName: String = "",
+        middleName: String = "",
+        honorificPrefix: String = "",
+        honorificSuffix: String = "",
+        phoneticGivenName: String = "",
+        phoneticMiddleName: String = "",
+        phoneticFamilyName: String = ""
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.givenName = givenName
+        self.familyName = familyName
+        self.middleName = middleName
+        self.honorificPrefix = honorificPrefix
+        self.honorificSuffix = honorificSuffix
+        self.phoneticGivenName = phoneticGivenName
+        self.phoneticMiddleName = phoneticMiddleName
+        self.phoneticFamilyName = phoneticFamilyName
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        displayName = try container.decodeIfPresent(String.self, forKey: .displayName) ?? ""
+        givenName = try container.decodeIfPresent(String.self, forKey: .givenName) ?? ""
+        familyName = try container.decodeIfPresent(String.self, forKey: .familyName) ?? ""
+        middleName = try container.decodeIfPresent(String.self, forKey: .middleName) ?? ""
+        honorificPrefix = try container.decodeIfPresent(String.self, forKey: .honorificPrefix) ?? ""
+        honorificSuffix = try container.decodeIfPresent(String.self, forKey: .honorificSuffix) ?? ""
+        phoneticGivenName = try container.decodeIfPresent(String.self, forKey: .phoneticGivenName) ?? ""
+        phoneticMiddleName = try container.decodeIfPresent(String.self, forKey: .phoneticMiddleName) ?? ""
+        phoneticFamilyName = try container.decodeIfPresent(String.self, forKey: .phoneticFamilyName) ?? ""
+    }
 }
 
 struct LabeledValue: Identifiable, Hashable, Codable {

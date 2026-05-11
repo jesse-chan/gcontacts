@@ -26,6 +26,7 @@
 		AA0000000000000000000015 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000114 /* GoogleAuthService.swift */; };
 		AA0000000000000000000016 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000C02 /* GoogleSignIn */; };
 		AA0000000000000000000017 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000C03 /* GoogleSignInSwift */; };
+		AA000000000000000000001C /* PhoneNumberKit in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000C05 /* PhoneNumberKit */; };
 		AA0000000000000000000018 /* GooglePeopleContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000116 /* GooglePeopleContactsService.swift */; };
 		AA0000000000000000000019 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000117 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -62,6 +63,7 @@
 			files = (
 				AA0000000000000000000016 /* GoogleSignIn in Frameworks */,
 				AA0000000000000000000017 /* GoogleSignInSwift in Frameworks */,
+				AA000000000000000000001C /* PhoneNumberKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -178,6 +180,7 @@
 			packageProductDependencies = (
 				AA0000000000000000000C02 /* GoogleSignIn */,
 				AA0000000000000000000C03 /* GoogleSignInSwift */,
+				AA0000000000000000000C05 /* PhoneNumberKit */,
 			);
 			productName = GContacts;
 			productReference = AA0000000000000000000300 /* GContacts.app */;
@@ -210,6 +213,7 @@
 			mainGroup = AA0000000000000000000500;
 			packageReferences = (
 				AA0000000000000000000C01 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				AA0000000000000000000C04 /* XCRemoteSwiftPackageReference "PhoneNumberKit" */,
 			);
 			productRefGroup = AA0000000000000000000508 /* Products */;
 			projectDirPath = "";
@@ -463,6 +467,14 @@
 				version = 9.0.0;
 			};
 		};
+		AA0000000000000000000C04 /* XCRemoteSwiftPackageReference "PhoneNumberKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/marmelroy/PhoneNumberKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -475,6 +487,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000C01 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		AA0000000000000000000C05 /* PhoneNumberKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000C04 /* XCRemoteSwiftPackageReference "PhoneNumberKit" */;
+			productName = PhoneNumberKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

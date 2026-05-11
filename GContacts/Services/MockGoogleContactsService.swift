@@ -75,6 +75,24 @@ actor MockGoogleContactsService: GoogleContactsService {
         return contact
     }
 
+    func updateContactPhoto(_ contact: Contact, photoData: Data) async throws -> Contact {
+        guard let index = contacts.firstIndex(where: { $0.id == contact.id }) else {
+            throw GoogleContactsServiceError.notFound
+        }
+        contacts[index] = contact
+        recalculateCounts()
+        return contacts[index]
+    }
+
+    func deleteContactPhoto(_ contact: Contact) async throws -> Contact {
+        guard let index = contacts.firstIndex(where: { $0.id == contact.id }) else {
+            throw GoogleContactsServiceError.notFound
+        }
+        contacts[index].photoURL = nil
+        recalculateCounts()
+        return contacts[index]
+    }
+
     func deleteContact(id: Contact.ID) async throws {
         contacts.removeAll { $0.id == id }
         recalculateCounts()

@@ -5,6 +5,8 @@ protocol GoogleContactsService {
     func fetchLabels() async throws -> [ContactLabel]
     func createContact(_ contact: Contact) async throws -> Contact
     func updateContact(_ contact: Contact) async throws -> Contact
+    func updateContactPhoto(_ contact: Contact, photoData: Data) async throws -> Contact
+    func deleteContactPhoto(_ contact: Contact) async throws -> Contact
     func deleteContact(id: Contact.ID) async throws
     func createLabel(named name: String) async throws -> ContactLabel
     func updateLabel(_ label: ContactLabel) async throws -> ContactLabel

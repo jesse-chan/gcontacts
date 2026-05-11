@@ -2,12 +2,20 @@ import SwiftUI
 
 struct ContactsListView: View {
     @Environment(ContactStore.self) private var store
+    let selectedLabel: ContactLabelSelection
+    let scrollToTopTrigger: Int
     @State private var searchText = ""
     @State private var contactToEdit: Contact?
 
     private var filteredContacts: [Contact] {
-        guard !searchText.isEmpty else { return store.contacts }
-        return store.contacts.filter { contact in
+        let labelFilteredContacts = if let labelID = selectedLabel.id {
+            store.contacts.filter { $0.labelIDs.contains(labelID) }
+        } else {
+            store.contacts
+        }
+
+        guard !searchText.isEmpty else { return labelFilteredContacts }
+        return labelFilteredContacts.filter { contact in
             contact.displayName.localizedStandardContains(searchText)
                 || contact.emailAddresses.contains { $0.value.localizedStandardContains(searchText) }
                 || contact.phoneNumbers.contains { $0.value.localizedStandardContains(searchText) }
@@ -67,9 +75,13 @@ struct ContactsListView: View {
                     }
                 }
             }
+            .id(listIdentity)
+            .refreshable {
+                await store.load()
+            }
             .scrollDismissesKeyboard(.interactively)
         }
-        .navigationTitle("contacts.title")
+        .navigationTitle(navigationTitle)
         .navigationDestination(for: Contact.self) { contact in
             ContactDetailView(contact: contact)
         }
@@ -85,11 +97,6 @@ struct ContactsListView: View {
         .sheet(item: $contactToEdit) { contact in
             ContactEditorView(contact: contact)
         }
-        .task {
-            if store.contacts.isEmpty {
-                await store.load()
-            }
-        }
         .alert("error.title", isPresented: Binding(
             get: { store.errorMessage != nil },
             set: { if !$0 { store.errorMessage = nil } }
@@ -98,6 +105,17 @@ struct ContactsListView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
+    }
+
+    private var navigationTitle: String {
+        guard selectedLabel.id != nil else {
+            return String(localized: "contacts.title")
+        }
+        return "\(String(localized: "contacts.title"))-\(selectedLabel.name)"
+    }
+
+    private var listIdentity: String {
+        "\(selectedLabel.id ?? "all")-\(scrollToTopTrigger)"
     }
 }
 

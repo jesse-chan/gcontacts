@@ -182,6 +182,46 @@ final class GooglePeopleContactsService: GoogleContactsService {
         return updatedContact
     }
 
+    func updateContactPhoto(_ contact: Contact, photoData: Data) async throws -> Contact {
+        guard let resourceName = contact.resourceName ?? contact.id.nilIfEmpty else {
+            throw GooglePeopleAPIError.missingResourceName
+        }
+
+        let url = baseURL.appending(path: "\(resourceName):updateContactPhoto")
+        let body = ContactPhotoUpdateRequest(
+            photoBytes: photoData.base64EncodedString(),
+            personFields: personFields,
+            sources: ["READ_SOURCE_TYPE_CONTACT"]
+        )
+        let response: ContactPhotoMutationResponse = try await send(url, method: "PATCH", body: body)
+        guard let person = response.person else {
+            throw GooglePeopleAPIError.invalidResponse
+        }
+        let updatedContact = Contact(person: person)
+        await replaceCachedContact(updatedContact)
+        return updatedContact
+    }
+
+    func deleteContactPhoto(_ contact: Contact) async throws -> Contact {
+        guard let resourceName = contact.resourceName ?? contact.id.nilIfEmpty else {
+            throw GooglePeopleAPIError.missingResourceName
+        }
+
+        var components = URLComponents(url: baseURL.appending(path: "\(resourceName):deleteContactPhoto"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "personFields", value: personFields),
+            URLQueryItem(name: "sources", value: "READ_SOURCE_TYPE_CONTACT")
+        ]
+
+        let response: ContactPhotoMutationResponse = try await send(components.url!, method: "DELETE")
+        guard let person = response.person else {
+            throw GooglePeopleAPIError.invalidResponse
+        }
+        let updatedContact = Contact(person: person)
+        await replaceCachedContact(updatedContact)
+        return updatedContact
+    }
+
     func deleteContact(id: Contact.ID) async throws {
         guard id.hasPrefix("people/") else {
             throw GooglePeopleAPIError.missingResourceName
@@ -387,6 +427,16 @@ private struct ContactGroupMutation: Encodable {
     var readGroupFields: String? = nil
 }
 
+private struct ContactPhotoUpdateRequest: Encodable {
+    let photoBytes: String
+    let personFields: String
+    let sources: [String]
+}
+
+private struct ContactPhotoMutationResponse: Decodable {
+    let person: PeoplePerson?
+}
+
 private struct PeoplePerson: Codable {
     var resourceName: String?
     var etag: String?
@@ -454,6 +504,9 @@ private struct PeopleName: Codable {
     var middleName: String?
     var honorificPrefix: String?
     var honorificSuffix: String?
+    var phoneticGivenName: String?
+    var phoneticMiddleName: String?
+    var phoneticFamilyName: String?
 
     init(name: ContactName) {
         displayName = name.displayName.nilIfEmpty
@@ -462,6 +515,9 @@ private struct PeopleName: Codable {
         middleName = name.middleName.nilIfEmpty
         honorificPrefix = name.honorificPrefix.nilIfEmpty
         honorificSuffix = name.honorificSuffix.nilIfEmpty
+        phoneticGivenName = name.phoneticGivenName.nilIfEmpty
+        phoneticMiddleName = name.phoneticMiddleName.nilIfEmpty
+        phoneticFamilyName = name.phoneticFamilyName.nilIfEmpty
     }
 }
 
@@ -624,14 +680,34 @@ private extension ContactName {
             familyName: name.familyName ?? "",
             middleName: name.middleName ?? "",
             honorificPrefix: name.honorificPrefix ?? "",
-            honorificSuffix: name.honorificSuffix ?? ""
+            honorificSuffix: name.honorificSuffix ?? "",
+            phoneticGivenName: name.phoneticGivenName ?? "",
+            phoneticMiddleName: name.phoneticMiddleName ?? "",
+            phoneticFamilyName: name.phoneticFamilyName ?? ""
         )
     }
 }
 
 private extension LabeledValue {
     init(labeledValue: PeopleLabeledValue) {
-        self.init(label: labeledValue.type ?? "", value: labeledValue.value ?? "")
+        self.init(label: (labeledValue.type ?? "").googleContactsDisplayLabel, value: labeledValue.value ?? "")
+    }
+}
+
+private extension String {
+    var googleContactsDisplayLabel: String {
+        switch lowercased() {
+        case "home": "Home"
+        case "work": "Work"
+        case "other": "Other"
+        case "mobile": "Mobile"
+        case "main": "Main"
+        case "homefax", "home_fax": "Home Fax"
+        case "workfax", "work_fax": "Work Fax"
+        case "googlevoice", "google_voice": "Google Voice"
+        case "pager": "Pager"
+        default: self
+        }
     }
 }
 

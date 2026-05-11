@@ -77,6 +77,30 @@ final class ContactStore {
         }
     }
 
+    @discardableResult
+    func updatePhoto(_ contact: Contact, photoData: Data) async -> Contact? {
+        do {
+            let updated = try await service.updateContactPhoto(contact, photoData: photoData)
+            replace(updated)
+            return updated
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func deletePhoto(_ contact: Contact) async -> Contact? {
+        do {
+            let updated = try await service.deleteContactPhoto(contact)
+            replace(updated)
+            return updated
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     func createLabel(named name: String) async {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -126,11 +150,22 @@ final class ContactStore {
     }
 
     func labelNames(for ids: Set<String>) -> String {
+        labelList(for: ids)
+            .map(\.name)
+            .joined(separator: ", ")
+    }
+
+    func labelNameList(for ids: Set<String>) -> [String] {
+        labelList(for: ids)
+            .map(\.name)
+    }
+
+    func labelList(for ids: Set<String>) -> [ContactLabel] {
         labels
             .filter { ids.contains($0.id) }
-            .map(\.name)
-            .sorted()
-            .joined(separator: ", ")
+            .sorted {
+                $0.name.localizedStandardCompare($1.name) == .orderedAscending
+            }
     }
 
     private func replace(_ contact: Contact) {
