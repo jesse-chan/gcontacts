@@ -534,18 +534,24 @@ private struct PeopleLabeledValue: Codable {
 private struct PeopleAddress: Codable {
     var type: String?
     var streetAddress: String?
+    var extendedAddress: String?
     var city: String?
     var region: String?
     var postalCode: String?
+    var poBox: String?
     var country: String?
+    var countryCode: String?
 
     init(address: PostalAddress) {
         type = address.label.nilIfEmpty
         streetAddress = address.streetAddress.nilIfEmpty
+        extendedAddress = address.extendedAddress.nilIfEmpty
         city = address.city.nilIfEmpty
         region = address.region.nilIfEmpty
         postalCode = address.postalCode.nilIfEmpty
+        poBox = address.poBox.nilIfEmpty
         country = address.country.nilIfEmpty
+        countryCode = address.countryCode.nilIfEmpty
     }
 }
 
@@ -716,10 +722,13 @@ private extension PostalAddress {
         self.init(
             label: address.type ?? "",
             streetAddress: address.streetAddress ?? "",
+            extendedAddress: address.extendedAddress ?? "",
             city: address.city ?? "",
             region: address.region ?? "",
             postalCode: address.postalCode ?? "",
-            country: address.country ?? ""
+            poBox: address.poBox ?? "",
+            country: address.country ?? "",
+            countryCode: address.countryCode ?? ""
         )
     }
 }

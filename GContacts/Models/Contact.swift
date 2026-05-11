@@ -116,10 +116,13 @@ struct PostalAddress: Identifiable, Hashable, Codable {
     var id = UUID().uuidString
     var label = ""
     var streetAddress = ""
+    var extendedAddress = ""
     var city = ""
     var region = ""
     var postalCode = ""
+    var poBox = ""
     var country = ""
+    var countryCode = ""
 }
 
 struct Organization: Identifiable, Hashable, Codable {

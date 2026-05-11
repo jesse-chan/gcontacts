@@ -6,6 +6,7 @@ import UIKit
 struct ContactEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ContactStore.self) private var store
+    private let originalDraft: Contact
     @State private var draft: Contact
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedPhotoImage: UIImage?
@@ -13,10 +14,15 @@ struct ContactEditorView: View {
     @State private var removesPhoto = false
     @State private var isShowingPhotoActions = false
     @State private var isShowingPhotoPicker = false
+    @State private var isShowingDiscardConfirmation = false
+    @State private var isSaving = false
     @State private var showsAllNameFields = false
+    @State private var validationMessage: String?
 
     init(contact: Contact) {
-        _draft = State(initialValue: contact.normalizedForEditing())
+        let normalized = contact.normalizedForEditing()
+        originalDraft = normalized
+        _draft = State(initialValue: normalized)
     }
 
     var body: some View {
@@ -58,16 +64,16 @@ struct ContactEditorView: View {
                 EditableAddressesSection(addresses: $draft.addresses)
                 EditableDatesSection(title: "section.birthdays", dates: $draft.birthdays)
                 EditableEventsSection(events: $draft.events)
-                EditableLabeledValuesSection(title: "section.urls", values: $draft.urls)
+                EditableWebsitesSection(values: $draft.urls)
                 EditableRelationsSection(relations: $draft.relations)
-                EditableBiographiesSection(biographies: $draft.biographies)
                 EditableUserDefinedSection(fields: $draft.userDefined)
+                EditableBiographiesSection(biographies: $draft.biographies)
             }
             .navigationTitle(draft.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("action.cancel") { dismiss() }
+                    Button("action.cancel") { cancel() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("action.save") {
@@ -75,6 +81,7 @@ struct ContactEditorView: View {
                             await save()
                         }
                     }
+                    .disabled(!hasChanges || isSaving)
                 }
             }
             .confirmationDialog("photo.edit", isPresented: $isShowingPhotoActions, titleVisibility: .visible) {
@@ -105,6 +112,34 @@ struct ContactEditorView: View {
             } message: {
                 Text(store.errorMessage ?? "")
             }
+            .alert("warning.title", isPresented: Binding(
+                get: { validationMessage != nil },
+                set: { if !$0 { validationMessage = nil } }
+            )) {
+                Button("action.ok", role: .cancel) {}
+            } message: {
+                Text(validationMessage ?? "")
+            }
+            .alert("discardChanges.title", isPresented: $isShowingDiscardConfirmation) {
+                Button("discardChanges.confirm", role: .destructive) {
+                    dismiss()
+                }
+                Button("action.cancel", role: .cancel) {}
+            } message: {
+                Text("discardChanges.message")
+            }
+        }
+    }
+
+    private var hasChanges: Bool {
+        draft != originalDraft || selectedPhotoData != nil || removesPhoto
+    }
+
+    private func cancel() {
+        if hasChanges {
+            isShowingDiscardConfirmation = true
+        } else {
+            dismiss()
         }
     }
 
@@ -130,7 +165,12 @@ struct ContactEditorView: View {
     }
 
     private func save() async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+
         draft = draft.normalizedForEditing()
+        guard validateForm() else { return }
         guard var saved = await store.save(draft) else { return }
 
         if removesPhoto {
@@ -143,6 +183,23 @@ struct ContactEditorView: View {
         }
 
         dismiss()
+    }
+
+    private func validateForm() -> Bool {
+        let hasInvalidBirthday = draft.birthdays.contains { !$0.hasRequiredMonthAndDay }
+        let hasInvalidEvent = draft.events.contains { !$0.date.hasRequiredMonthAndDay }
+
+        guard !hasInvalidBirthday && !hasInvalidEvent else {
+            validationMessage = String(localized: "date.validation.monthDayRequired")
+            return false
+        }
+
+        guard !draft.userDefined.contains(where: { $0.requiresLabel }) else {
+            validationMessage = String(localized: "customField.validation.labelRequired")
+            return false
+        }
+
+        return true
     }
 
     private var nameBinding: Binding<ContactName> {
@@ -290,6 +347,49 @@ private struct EditableEmailsSection: View {
                 values.append(LabeledValue())
             }
         }
+    }
+}
+
+private struct EditableWebsitesSection: View {
+    @Binding var values: [LabeledValue]
+
+    var body: some View {
+        Section("section.urls") {
+            ForEach($values) { $value in
+                EditableWebsiteRow(value: $value) {
+                    values.removeAll { $0.id == value.id }
+                }
+            }
+            .onDelete { values.remove(atOffsets: $0) }
+
+            Button("website.add") {
+                values.append(LabeledValue())
+            }
+        }
+    }
+}
+
+private struct EditableWebsiteRow: View {
+    @Binding var value: LabeledValue
+    let onDelete: () -> Void
+
+    private let labelOptions = [
+        LabelOption(title: "label.profile", value: "Profile"),
+        LabelOption(title: "label.blog", value: "Blog"),
+        LabelOption(title: "label.homePage", value: "Home Page"),
+        LabelOption(title: "label.work", value: "Work")
+    ]
+
+    var body: some View {
+        EditableLabeledInputRow(
+            value: $value,
+            valueTitle: "section.urls",
+            presetLabels: labelOptions,
+            keyboardType: .URL,
+            textCapitalization: .never,
+            removeLabel: "website.remove",
+            onDelete: onDelete
+        )
     }
 }
 
@@ -501,6 +601,24 @@ private extension String {
         case "home": "Home"
         case "work": "Work"
         case "other": "Other"
+        case "profile": "Profile"
+        case "blog": "Blog"
+        case "homepage", "home_page", "home page": "Home Page"
+        case "spouse": "Spouse"
+        case "child": "Child"
+        case "mother": "Mother"
+        case "father": "Father"
+        case "parent": "Parent"
+        case "brother": "Brother"
+        case "sister": "Sister"
+        case "friend": "Friend"
+        case "relative": "Relative"
+        case "manager": "Manager"
+        case "assistant": "Assistant"
+        case "reference": "Reference"
+        case "partner": "Partner"
+        case "domesticpartner", "domestic_partner", "domestic partner": "Domestic Partner"
+        case "anniversary": "Anniversary"
         case "mobile": "Mobile"
         case "main": "Main"
         case "homefax", "home_fax", "home fax": "Home Fax"
@@ -925,12 +1043,9 @@ private struct EditableAddressesSection: View {
     var body: some View {
         Section("section.addresses") {
             ForEach($addresses) { $address in
-                TextField("field.label", text: $address.label)
-                TextField("address.street", text: $address.streetAddress)
-                TextField("address.city", text: $address.city)
-                TextField("address.region", text: $address.region)
-                TextField("address.postalCode", text: $address.postalCode)
-                TextField("address.country", text: $address.country)
+                EditableAddressRow(address: $address) {
+                    addresses.removeAll { $0.id == address.id }
+                }
             }
             .onDelete { addresses.remove(atOffsets: $0) }
 
@@ -939,6 +1054,263 @@ private struct EditableAddressesSection: View {
             }
         }
     }
+}
+
+private struct EditableAddressRow: View {
+    @Binding var address: PostalAddress
+    let onDelete: () -> Void
+    @State private var isPickingCountry = false
+
+    private let labelOptions = [
+        LabelOption(title: "label.home", value: "Home"),
+        LabelOption(title: "label.work", value: "Work"),
+        LabelOption(title: "label.other", value: "Other")
+    ]
+
+    private var selectedCountry: AddressCountry? {
+        AddressCountry.matching(code: address.countryCode, name: address.country)
+    }
+
+    private var counties: [String] {
+        selectedCountry.map { AddressSubdivisionCatalog.counties(for: $0) } ?? []
+    }
+
+    private var districts: [String] {
+        guard let selectedCountry, !address.region.isEmpty else { return [] }
+        return AddressSubdivisionCatalog.districts(for: selectedCountry, county: address.region)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("field.label", text: labelBinding)
+                .textInputAutocapitalization(.words)
+
+            Menu {
+                ForEach(labelOptions) { label in
+                    Button(label.title) {
+                        address.label = label.value
+                    }
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: onDelete) {
+                Text("🅧")
+                    .font(.body.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("address.remove"))
+        }
+
+        Button {
+            isPickingCountry = true
+        } label: {
+            FieldMenuValue(title: "address.country", value: address.country)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isPickingCountry) {
+            AddressCountryPickerView(selectedCountry: selectedCountry) { country in
+                address.country = country.name
+                address.countryCode = country.regionCode
+                address.region = ""
+                address.city = ""
+                isPickingCountry = false
+            }
+        }
+
+        TextField("address.street", text: $address.streetAddress)
+            .textInputAutocapitalization(.words)
+        TextField("address.extended", text: $address.extendedAddress)
+            .textInputAutocapitalization(.words)
+
+        Menu {
+            ForEach(districts, id: \.self) { district in
+                Button(district) {
+                    address.city = district
+                }
+            }
+        } label: {
+            FieldMenuValue(title: "address.district", value: address.city)
+        }
+        .buttonStyle(.plain)
+        .disabled(address.region.isEmpty || districts.isEmpty)
+
+        Menu {
+            ForEach(counties, id: \.self) { county in
+                Button(county) {
+                    address.region = county
+                    address.city = ""
+                }
+            }
+        } label: {
+            FieldMenuValue(title: "address.county", value: address.region)
+        }
+        .buttonStyle(.plain)
+        .disabled(selectedCountry == nil || counties.isEmpty)
+
+        TextField("address.postalCode", text: $address.postalCode)
+            .keyboardType(.numbersAndPunctuation)
+        TextField("address.poBox", text: $address.poBox)
+            .textInputAutocapitalization(.words)
+    }
+
+    private var labelBinding: Binding<String> {
+        Binding {
+            address.label.googleContactsDisplayLabel
+        } set: { newValue in
+            address.label = newValue.googleContactsDisplayLabel
+        }
+    }
+}
+
+private struct FieldMenuValue: View {
+    let title: LocalizedStringKey
+    let value: String
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value.isEmpty ? String(localized: "field.empty") : value)
+                    .foregroundStyle(value.isEmpty ? .secondary : .primary)
+            }
+            Spacer()
+            Image(systemName: "chevron.down")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct AddressCountryPickerView: View {
+    let selectedCountry: AddressCountry?
+    let onSelect: (AddressCountry) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredCountries: [AddressCountry] {
+        guard !searchText.isEmpty else { return AddressCountry.all }
+        return AddressCountry.all.filter { country in
+            country.name.localizedStandardContains(searchText)
+                || country.regionCode.localizedStandardContains(searchText)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List(filteredCountries) { country in
+                Button {
+                    onSelect(country)
+                    dismiss()
+                } label: {
+                    HStack(spacing: 12) {
+                        Text(country.flag)
+                        Text(country.name)
+                        Spacer()
+                        if country == selectedCountry {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+            .navigationTitle("address.country")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "address.country")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("action.cancel") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+}
+
+private struct AddressCountry: Identifiable, Hashable {
+    let regionCode: String
+
+    var id: String { regionCode }
+
+    var name: String {
+        Locale.autoupdatingCurrent.localizedString(forRegionCode: regionCode)
+            ?? Locale(identifier: "en").localizedString(forRegionCode: regionCode)
+            ?? regionCode
+    }
+
+    var flag: String {
+        regionCode
+            .unicodeScalars
+            .compactMap { UnicodeScalar(127397 + $0.value) }
+            .map(String.init)
+            .joined()
+    }
+
+    static func matching(code: String, name: String) -> AddressCountry? {
+        if let byCode = all.first(where: { $0.regionCode == code }) {
+            return byCode
+        }
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return nil }
+        return all.first {
+            $0.name.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame
+                || $0.regionCode.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame
+        }
+    }
+
+    static let all: [AddressCountry] = Locale.Region.isoRegions
+        .compactMap { region -> AddressCountry? in
+            let code = region.identifier
+            guard code.count == 2 else { return nil }
+            return AddressCountry(regionCode: code)
+        }
+        .sorted { lhs, rhs in
+            lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        }
+}
+
+private enum AddressSubdivisionCatalog {
+    static func counties(for country: AddressCountry) -> [String] {
+        guard country.regionCode == "TW" else { return [] }
+        return taiwanDistricts.map(\.county)
+    }
+
+    static func districts(for country: AddressCountry, county: String) -> [String] {
+        guard country.regionCode == "TW" else { return [] }
+        return taiwanDistricts.first { $0.county == county }?.districts ?? []
+    }
+
+    private static let taiwanDistricts: [(county: String, districts: [String])] = [
+        ("Taipei City", ["Zhongzheng District", "Datong District", "Zhongshan District", "Songshan District", "Da'an District", "Wanhua District", "Xinyi District", "Shilin District", "Beitou District", "Neihu District", "Nangang District", "Wenshan District"]),
+        ("New Taipei City", ["Banqiao District", "Sanchong District", "Zhonghe District", "Yonghe District", "Xinzhuang District", "Xindian District", "Tucheng District", "Luzhou District", "Shulin District", "Yingge District", "Sanxia District", "Tamsui District", "Xizhi District", "Ruifang District", "Wugu District", "Taishan District", "Linkou District", "Shenkeng District", "Shiding District", "Pinglin District", "Sanzhi District", "Shimen District", "Bali District", "Pingxi District", "Shuangxi District", "Gongliao District", "Jinshan District", "Wanli District", "Wulai District"]),
+        ("Taoyuan City", ["Taoyuan District", "Zhongli District", "Daxi District", "Yangmei District", "Luzhu District", "Dayuan District", "Guishan District", "Bade District", "Longtan District", "Pingzhen District", "Xinwu District", "Guanyin District", "Fuxing District"]),
+        ("Taichung City", ["Central District", "East District", "South District", "West District", "North District", "Beitun District", "Xitun District", "Nantun District", "Taiping District", "Dali District", "Wufeng District", "Wuri District", "Fengyuan District", "Houli District", "Shigang District", "Dongshi District", "Heping District", "Xinshe District", "Tanzi District", "Daya District", "Shengang District", "Dadu District", "Shalu District", "Longjing District", "Wuqi District", "Qingshui District", "Dajia District", "Waipu District", "Da'an District"]),
+        ("Tainan City", ["West Central District", "East District", "South District", "North District", "Anping District", "Annan District", "Yongkang District", "Guiren District", "Xinhua District", "Zuozhen District", "Yujing District", "Nanxi District", "Nanhua District", "Rende District", "Guanmiao District", "Longqi District", "Guantian District", "Madou District", "Jiali District", "Xigang District", "Qigu District", "Jiangjun District", "Xuejia District", "Beimen District", "Xinying District", "Houbi District", "Baihe District", "Dongshan District", "Liujia District", "Xiaying District", "Liuying District", "Yanshui District", "Shanhua District", "Danei District", "Shanshang District", "Xinshi District", "Anding District"]),
+        ("Kaohsiung City", ["Xinxing District", "Qianjin District", "Lingya District", "Yancheng District", "Gushan District", "Qijin District", "Qianzhen District", "Sanmin District", "Nanzih District", "Xiaogang District", "Zuoying District", "Renwu District", "Dashe District", "Gangshan District", "Luzhu District", "Alian District", "Tianliao District", "Yanchao District", "Qiaotou District", "Ziguan District", "Mituo District", "Yongan District", "Hunei District", "Fengshan District", "Daliao District", "Linyuan District", "Niaosong District", "Dashu District", "Qishan District", "Meinong District", "Liugui District", "Neimen District", "Shanlin District", "Jiaxian District", "Taoyuan District", "Namaxia District", "Maolin District", "Qieding District"]),
+        ("Keelung City", ["Ren'ai District", "Xinyi District", "Zhongzheng District", "Zhongshan District", "Anle District", "Nuannuan District", "Qidu District"]),
+        ("Hsinchu City", ["East District", "North District", "Xiangshan District"]),
+        ("Chiayi City", ["East District", "West District"]),
+        ("Hsinchu County", ["Zhubei City", "Zhudong Township", "Xinpu Township", "Guanxi Township", "Hukou Township", "Xinfeng Township", "Emei Township", "Baoshan Township", "Beipu Township", "Qionglin Township", "Hengshan Township", "Jianshi Township", "Wufeng Township"]),
+        ("Miaoli County", ["Miaoli City", "Toufen City", "Yuanli Township", "Tongxiao Township", "Zhunan Township", "Houlong Township", "Zhuolan Township", "Dahu Township", "Gongguan Township", "Tongluo Township", "Nanzhuang Township", "Touwu Township", "Sanyi Township", "Xihu Township", "Zaoqiao Township", "Sanwan Township", "Shitan Township", "Tai'an Township"]),
+        ("Changhua County", ["Changhua City", "Lukang Township", "Hemei Township", "Xianxi Township", "Shengang Township", "Fuxing Township", "Xiushui Township", "Huatan Township", "Fenyuan Township", "Yuanlin City", "Xihu Township", "Tianzhong Township", "Dacun Township", "Puxin Township", "Yongjing Township", "Shetou Township", "Ershui Township", "Beidou Township", "Erlin Township", "Tianwei Township", "Pitou Township", "Fangyuan Township", "Dacheng Township", "Zhutang Township", "Xizhou Township"]),
+        ("Nantou County", ["Nantou City", "Puli Township", "Caotun Township", "Zhushan Township", "Jiji Township", "Mingjian Township", "Lugu Township", "Zhongliao Township", "Yuchi Township", "Guoxing Township", "Shuili Township", "Xinyi Township", "Ren'ai Township"]),
+        ("Yunlin County", ["Douliu City", "Dounan Township", "Huwei Township", "Xiluo Township", "Tuku Township", "Beigang Township", "Gukeng Township", "Dapi Township", "Citong Township", "Linnei Township", "Erlun Township", "Lunbei Township", "Mailiao Township", "Dongshi Township", "Baozhong Township", "Taixi Township", "Yuanchang Township", "Sihu Township", "Kouhu Township", "Shuilin Township"]),
+        ("Chiayi County", ["Taibao City", "Puzi City", "Budai Township", "Dalin Township", "Minxiong Township", "Xikou Township", "Xingang Township", "Liujiao Township", "Dongshi Township", "Yizhu Township", "Lucao Township", "Shuishang Township", "Zhongpu Township", "Zhuqi Township", "Meishan Township", "Fanlu Township", "Dapu Township", "Alishan Township"]),
+        ("Pingtung County", ["Pingtung City", "Chaozhou Township", "Donggang Township", "Hengchun Township", "Wandan Township", "Changzhi Township", "Linluo Township", "Jiuru Township", "Ligang Township", "Yanpu Township", "Gaoshu Township", "Wanluan Township", "Neipu Township", "Zhutian Township", "Xinpi Township", "Fangliao Township", "Xinyuan Township", "Kanding Township", "Nanzhou Township", "Linbian Township", "Jiadong Township", "Liuqiu Township", "Checheng Township", "Manzhou Township", "Fangshan Township", "Sandimen Township", "Wutai Township", "Majia Township", "Taiwu Township", "Laiyi Township", "Chunri Township", "Shizi Township", "Mudan Township"]),
+        ("Yilan County", ["Yilan City", "Luodong Township", "Su'ao Township", "Toucheng Township", "Jiaoxi Township", "Zhuangwei Township", "Yuanshan Township", "Dongshan Township", "Wujie Township", "Sanxing Township", "Datong Township", "Nan'ao Township"]),
+        ("Hualien County", ["Hualien City", "Fenglin Township", "Yuli Township", "Xincheng Township", "Ji'an Township", "Shoufeng Township", "Guangfu Township", "Fengbin Township", "Ruisui Township", "Fuli Township", "Xiulin Township", "Wanrong Township", "Zhuoxi Township"]),
+        ("Taitung County", ["Taitung City", "Chenggong Township", "Guanshan Township", "Beinan Township", "Luye Township", "Chishang Township", "Donghe Township", "Changbin Township", "Taimali Township", "Dawu Township", "Lüdao Township", "Haiduan Township", "Yanping Township", "Jinfeng Township", "Daren Township", "Lanyu Township"]),
+        ("Penghu County", ["Magong City", "Huxi Township", "Baisha Township", "Xiyu Township", "Wang'an Township", "Qimei Township"]),
+        ("Kinmen County", ["Jincheng Township", "Jinhu Township", "Jinsha Township", "Jinning Township", "Lieyu Township", "Wuqiu Township"]),
+        ("Lienchiang County", ["Nangan Township", "Beigan Township", "Juguang Township", "Dongyin Township"])
+    ]
 }
 
 private struct EditableOrganizationsSection: View {
@@ -976,12 +1348,7 @@ private struct EditableDatesSection: View {
     var body: some View {
         Section(title) {
             ForEach($dates) { $date in
-                TextField("date.year", text: $date.year)
-                    .keyboardType(.numberPad)
-                TextField("date.month", text: $date.month)
-                    .keyboardType(.numberPad)
-                TextField("date.day", text: $date.day)
-                    .keyboardType(.numberPad)
+                EditableContactDateFields(date: $date)
             }
             .onDelete { dates.remove(atOffsets: $0) }
 
@@ -992,19 +1359,150 @@ private struct EditableDatesSection: View {
     }
 }
 
+private struct EditableContactDateFields: View {
+    @Binding var date: ContactDate
+
+    private var selectedMonthValue: String {
+        guard let month = Int(date.month), (1...12).contains(month) else {
+            return ""
+        }
+        return DateInputFormatter.monthTitle(month)
+    }
+
+    private var dayOptions: [String] {
+        (1...DateInputFormatter.maxDay(month: date.month, year: date.year)).map {
+            String(format: "%02d", $0)
+        }
+    }
+
+    var body: some View {
+        TextField("date.year", text: yearBinding)
+            .keyboardType(.numberPad)
+
+        Picker("date.month", selection: monthBinding) {
+            Text("field.empty").tag("")
+            ForEach(1...12, id: \.self) { month in
+                Text(monthTitle(month)).tag(String(month))
+            }
+        }
+        .pickerStyle(.menu)
+
+        Picker("date.day", selection: dayBinding) {
+            Text("field.empty").tag("")
+            ForEach(dayOptions, id: \.self) { day in
+                Text(day).tag(day)
+            }
+        }
+        .pickerStyle(.menu)
+    }
+
+    private var yearBinding: Binding<String> {
+        Binding {
+            date.year
+        } set: { newValue in
+            date.year = DateInputFormatter.year(newValue)
+            date.day = DateInputFormatter.validatedDay(
+                date.day,
+                month: date.month,
+                year: date.year,
+                padsSingleDigit: true
+            )
+        }
+    }
+
+    private var monthBinding: Binding<String> {
+        Binding {
+            date.month
+        } set: { newValue in
+            date.month = newValue
+            date.day = DateInputFormatter.validatedDay(
+                date.day,
+                month: date.month,
+                year: date.year,
+                padsSingleDigit: true
+            )
+        }
+    }
+
+    private var dayBinding: Binding<String> {
+        Binding {
+            date.day
+        } set: { newValue in
+            date.day = newValue
+        }
+    }
+
+    private func monthTitle(_ month: Int) -> String {
+        DateInputFormatter.monthTitle(month)
+    }
+}
+
+private enum DateInputFormatter {
+    static func year(_ text: String) -> String {
+        String(text.filter(\.isNumber).prefix(4))
+    }
+
+    static func validatedDay(
+        _ text: String,
+        month: String,
+        year: String,
+        padsSingleDigit: Bool
+    ) -> String {
+        let digits = String(text.filter(\.isNumber).prefix(2))
+        guard !digits.isEmpty else { return "" }
+
+        guard var day = Int(digits) else { return "" }
+        let maxDay = maxDay(month: month, year: year)
+        day = min(max(day, 1), maxDay)
+
+        if digits.count == 1 {
+            if padsSingleDigit && day >= 4 {
+                return String(format: "%02d", day)
+            }
+            return String(day)
+        }
+
+        return String(format: "%02d", day)
+    }
+
+    static func monthTitle(_ month: Int) -> String {
+        let symbols = Calendar.current.monthSymbols
+        guard symbols.indices.contains(month - 1) else { return String(month) }
+        return symbols[month - 1]
+    }
+
+    static func maxDay(month: String, year: String) -> Int {
+        guard let monthValue = Int(month), (1...12).contains(monthValue) else {
+            return 31
+        }
+
+        switch monthValue {
+        case 4, 6, 9, 11:
+            return 30
+        case 2:
+            guard let yearValue = Int(year), year.count == 4 else {
+                return 29
+            }
+            return isLeapYear(yearValue) ? 29 : 28
+        default:
+            return 31
+        }
+    }
+
+    private static func isLeapYear(_ year: Int) -> Bool {
+        (year.isMultiple(of: 4) && !year.isMultiple(of: 100)) || year.isMultiple(of: 400)
+    }
+}
+
 private struct EditableEventsSection: View {
     @Binding var events: [ContactEvent]
 
     var body: some View {
         Section("section.events") {
             ForEach($events) { $event in
-                TextField("field.label", text: $event.label)
-                TextField("date.year", text: $event.date.year)
-                    .keyboardType(.numberPad)
-                TextField("date.month", text: $event.date.month)
-                    .keyboardType(.numberPad)
-                TextField("date.day", text: $event.date.day)
-                    .keyboardType(.numberPad)
+                EditableEventRow(event: $event) {
+                    events.removeAll { $0.id == event.id }
+                }
             }
             .onDelete { events.remove(atOffsets: $0) }
 
@@ -1015,14 +1513,62 @@ private struct EditableEventsSection: View {
     }
 }
 
+private struct EditableEventRow: View {
+    @Binding var event: ContactEvent
+    let onDelete: () -> Void
+
+    private let labelOptions = [
+        LabelOption(title: "label.anniversary", value: "Anniversary"),
+        LabelOption(title: "label.other", value: "Other")
+    ]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("field.label", text: labelBinding)
+                .textInputAutocapitalization(.words)
+
+            Menu {
+                ForEach(labelOptions) { label in
+                    Button(label.title) {
+                        event.label = label.value
+                    }
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: onDelete) {
+                Text("🅧")
+                    .font(.body.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("event.remove"))
+        }
+
+        EditableContactDateFields(date: $event.date)
+    }
+
+    private var labelBinding: Binding<String> {
+        Binding {
+            event.label.googleContactsDisplayLabel
+        } set: { newValue in
+            event.label = newValue.googleContactsDisplayLabel
+        }
+    }
+}
+
 private struct EditableRelationsSection: View {
     @Binding var relations: [Relation]
 
     var body: some View {
         Section("section.relations") {
             ForEach($relations) { $relation in
-                TextField("field.label", text: $relation.label)
-                TextField("relation.person", text: $relation.person)
+                EditableRelationRow(relation: $relation) {
+                    relations.removeAll { $0.id == relation.id }
+                }
             }
             .onDelete { relations.remove(atOffsets: $0) }
 
@@ -1033,20 +1579,81 @@ private struct EditableRelationsSection: View {
     }
 }
 
+private struct EditableRelationRow: View {
+    @Binding var relation: Relation
+    let onDelete: () -> Void
+
+    private let labelOptions = [
+        LabelOption(title: "label.spouse", value: "Spouse"),
+        LabelOption(title: "label.child", value: "Child"),
+        LabelOption(title: "label.mother", value: "Mother"),
+        LabelOption(title: "label.father", value: "Father"),
+        LabelOption(title: "label.parent", value: "Parent"),
+        LabelOption(title: "label.brother", value: "Brother"),
+        LabelOption(title: "label.sister", value: "Sister"),
+        LabelOption(title: "label.friend", value: "Friend"),
+        LabelOption(title: "label.relative", value: "Relative"),
+        LabelOption(title: "label.manager", value: "Manager"),
+        LabelOption(title: "label.assistant", value: "Assistant"),
+        LabelOption(title: "label.reference", value: "Reference"),
+        LabelOption(title: "label.partner", value: "Partner"),
+        LabelOption(title: "label.domesticPartner", value: "Domestic Partner")
+    ]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("field.label", text: labelBinding)
+                .textInputAutocapitalization(.words)
+
+            Menu {
+                ForEach(labelOptions) { label in
+                    Button(label.title) {
+                        relation.label = label.value
+                    }
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: onDelete) {
+                Text("🅧")
+                    .font(.body.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("relation.remove"))
+        }
+
+        TextField("relation.person", text: $relation.person)
+            .textInputAutocapitalization(.words)
+    }
+
+    private var labelBinding: Binding<String> {
+        Binding {
+            relation.label.googleContactsDisplayLabel
+        } set: { newValue in
+            relation.label = newValue.googleContactsDisplayLabel
+        }
+    }
+}
+
 private struct EditableBiographiesSection: View {
     @Binding var biographies: [String]
 
     var body: some View {
         Section("section.biographies") {
-            ForEach(biographies.indices, id: \.self) { index in
-                TextEditor(text: $biographies[index])
-                    .frame(minHeight: 80)
-            }
-            .onDelete { biographies.remove(atOffsets: $0) }
+            TextEditor(text: biographyBinding)
+                .frame(minHeight: 80)
+        }
+    }
 
-            Button("action.addBiography") {
-                biographies.append("")
-            }
+    private var biographyBinding: Binding<String> {
+        Binding {
+            biographies.first ?? ""
+        } set: { value in
+            biographies = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [] : [value]
         }
     }
 }
@@ -1057,8 +1664,9 @@ private struct EditableUserDefinedSection: View {
     var body: some View {
         Section("section.userDefined") {
             ForEach($fields) { $field in
-                TextField("field.key", text: $field.key)
-                TextField("field.value", text: $field.value)
+                EditableUserDefinedRow(field: $field) {
+                    fields.removeAll { $0.id == field.id }
+                }
             }
             .onDelete { fields.remove(atOffsets: $0) }
 
@@ -1066,6 +1674,27 @@ private struct EditableUserDefinedSection: View {
                 fields.append(UserDefinedField())
             }
         }
+    }
+}
+
+private struct EditableUserDefinedRow: View {
+    @Binding var field: UserDefinedField
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("field.label", text: $field.key)
+                .textInputAutocapitalization(.words)
+
+            Button(action: onDelete) {
+                Text("🅧")
+                    .font(.body.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("customField.remove"))
+        }
+
+        TextField("field.value", text: $field.value)
     }
 }
 
@@ -1100,6 +1729,48 @@ private extension Contact {
             !$0.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
+        normalized.birthdays = birthdays.filter(\.hasAnyValue)
+        normalized.events = events.filter {
+            !$0.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || $0.date.hasAnyValue
+        }
+        normalized.addresses = addresses.filter {
+            !$0.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.streetAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.extendedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.region.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.postalCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.poBox.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.country.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.countryCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        normalized.userDefined = userDefined.filter(\.hasAnyValue)
         return normalized
+    }
+}
+
+private extension ContactDate {
+    var hasAnyValue: Bool {
+        !year.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !month.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !day.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var hasRequiredMonthAndDay: Bool {
+        !month.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !day.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+private extension UserDefinedField {
+    var hasAnyValue: Bool {
+        !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var requiresLabel: Bool {
+        key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }

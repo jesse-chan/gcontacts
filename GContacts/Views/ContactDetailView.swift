@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ContactDetailView: View {
     @Environment(ContactStore.self) private var store
@@ -84,13 +85,13 @@ struct ContactDetailView: View {
 
             ContactFieldSection(title: "section.names", items: draft.names.map(\.displayName))
             ContactFieldSection(title: "section.nicknames", items: draft.nicknames.map(\.value))
-            ContactLabeledValueSection(title: "section.emails", items: draft.emailAddresses)
-            ContactLabeledValueSection(title: "section.phones", items: draft.phoneNumbers)
-            ContactFieldSection(title: "section.addresses", items: draft.addresses.map { [$0.streetAddress, $0.city, $0.region, $0.postalCode, $0.country].joinedNonEmpty(separator: ", ") })
+            ContactEmailSection(items: draft.emailAddresses)
+            ContactPhoneSection(items: draft.phoneNumbers)
+            ContactAddressSection(addresses: draft.addresses)
             ContactFieldSection(title: "section.birthdays", items: draft.birthdays.map { [$0.year, $0.month, $0.day].joinedNonEmpty(separator: "/") })
-            ContactFieldSection(title: "section.events", items: draft.events.map { "\($0.label): \([$0.date.year, $0.date.month, $0.date.day].joinedNonEmpty(separator: "/"))" })
-            ContactFieldSection(title: "section.urls", items: draft.urls.map(\.value))
-            ContactFieldSection(title: "section.relations", items: draft.relations.map { "\($0.label): \($0.person)" })
+            ContactFieldSection(title: "section.events", items: draft.events.map { "\($0.label.lowercased()): \([$0.date.year, $0.date.month, $0.date.day].joinedNonEmpty(separator: "/"))" })
+            ContactWebsiteSection(items: draft.urls)
+            ContactFieldSection(title: "section.relations", items: draft.relations.map { "\($0.label.lowercased()): \($0.person)" })
             ContactFieldSection(title: "section.biographies", items: draft.biographies)
             ContactFieldSection(title: "section.userDefined", items: draft.userDefined.map { "\($0.key): \($0.value)" })
         }
@@ -180,6 +181,327 @@ private struct ContactHeaderTitleView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct ContactWebsiteSection: View {
+    let items: [LabeledValue]
+    @State private var isShowingWebsiteUnavailable = false
+
+    var body: some View {
+        let visibleItems = items.filter {
+            !$0.value.isBlank || !$0.label.isBlank
+        }
+        if !visibleItems.isEmpty {
+            Section("section.urls") {
+                ForEach(visibleItems) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        if !item.value.isBlank {
+                            Button {
+                                openWebsite(item.value)
+                            } label: {
+                                Text(item.value)
+                                    .foregroundStyle(.blue)
+                                    .underline()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(Text("website.open"))
+                        }
+
+                        if !item.label.isBlank {
+                            Text(item.label.googleContactsDisplayLabel)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            .alert("warning.title", isPresented: $isShowingWebsiteUnavailable) {
+                Button("action.ok", role: .cancel) {}
+            } message: {
+                Text("website.openUnavailable")
+            }
+        }
+    }
+
+    private func openWebsite(_ website: String) {
+        guard let url = websiteURL(for: website) else {
+            isShowingWebsiteUnavailable = true
+            return
+        }
+
+        UIApplication.shared.open(url, options: [:]) { success in
+            if !success {
+                DispatchQueue.main.async {
+                    isShowingWebsiteUnavailable = true
+                }
+            }
+        }
+    }
+
+    private func websiteURL(for website: String) -> URL? {
+        let trimmed = website.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if let url = URL(string: trimmed), url.scheme != nil {
+            return url
+        }
+
+        return URL(string: "https://\(trimmed)")
+    }
+}
+
+private struct ContactAddressSection: View {
+    let addresses: [PostalAddress]
+    @State private var isShowingMapUnavailable = false
+
+    var body: some View {
+        let visibleAddresses = addresses.filter { !$0.displayAddress.isBlank || !$0.label.isBlank }
+        if !visibleAddresses.isEmpty {
+            Section("section.addresses") {
+                ForEach(visibleAddresses) { address in
+                    let displayAddress = address.displayAddress
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if !displayAddress.isBlank {
+                                Button {
+                                    openAddress(displayAddress)
+                                } label: {
+                                    Text(displayAddress)
+                                        .foregroundStyle(.blue)
+                                        .underline()
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(Text("address.openMap"))
+                            }
+
+                            if !address.label.isBlank {
+                                Text(address.label.googleContactsDisplayLabel)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 2)
+
+                        Spacer(minLength: 0)
+
+                        Button {
+                            UIPasteboard.general.string = displayAddress
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(.blue)
+                                .frame(width: 34, height: 34)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(displayAddress.isBlank)
+                        .accessibilityLabel(Text("address.copy"))
+                    }
+                }
+            }
+            .alert("warning.title", isPresented: $isShowingMapUnavailable) {
+                Button("action.ok", role: .cancel) {}
+            } message: {
+                Text("address.openMapUnavailable")
+            }
+        }
+    }
+
+    private func openAddress(_ address: String) {
+        guard let googleMapsAppURL = googleMapsAppURL(for: address) else { return }
+        UIApplication.shared.open(googleMapsAppURL, options: [:]) { success in
+            if success { return }
+            guard let googleMapsWebURL = googleMapsWebURL(for: address) else {
+                DispatchQueue.main.async {
+                    isShowingMapUnavailable = true
+                }
+                return
+            }
+            UIApplication.shared.open(googleMapsWebURL, options: [:]) { webSuccess in
+                if !webSuccess {
+                    DispatchQueue.main.async {
+                        isShowingMapUnavailable = true
+                    }
+                }
+            }
+        }
+    }
+
+    private func googleMapsAppURL(for address: String) -> URL? {
+        guard let encodedAddress = encodedQuery(address) else { return nil }
+        return URL(string: "comgooglemaps://?q=\(encodedAddress)")
+    }
+
+    private func googleMapsWebURL(for address: String) -> URL? {
+        guard let encodedAddress = encodedQuery(address) else { return nil }
+        return URL(string: "https://www.google.com/maps/search/?api=1&query=\(encodedAddress)")
+    }
+
+    private func encodedQuery(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var allowedCharacters = CharacterSet.urlQueryAllowed
+        allowedCharacters.remove(charactersIn: "&+=?")
+        return trimmed.addingPercentEncoding(withAllowedCharacters: allowedCharacters)
+    }
+}
+
+private struct ContactPhoneSection: View {
+    let items: [LabeledValue]
+    @State private var isShowingPhoneUnavailable = false
+
+    var body: some View {
+        let visibleItems = items.filter {
+            !$0.value.isBlank || !$0.label.isBlank
+        }
+        if !visibleItems.isEmpty {
+            Section("section.phones") {
+                ForEach(visibleItems) { item in
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if !item.value.isBlank {
+                                Button {
+                                    callPhone(item.value)
+                                } label: {
+                                    Text(item.value)
+                                        .foregroundStyle(.blue)
+                                        .underline()
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(Text("phone.call"))
+                            }
+
+                            if !item.label.isBlank {
+                                Text(item.label.googleContactsDisplayLabel)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 2)
+
+                        Spacer(minLength: 0)
+
+                        Button {
+                            UIPasteboard.general.string = item.value
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(.blue)
+                                .frame(width: 34, height: 34)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(item.value.isBlank)
+                        .accessibilityLabel(Text("phone.copy"))
+                    }
+                }
+            }
+            .alert("warning.title", isPresented: $isShowingPhoneUnavailable) {
+                Button("action.ok", role: .cancel) {}
+            } message: {
+                Text("phone.callUnavailable")
+            }
+        }
+    }
+
+    private func callPhone(_ phone: String) {
+        guard let url = phoneURL(for: phone) else { return }
+        UIApplication.shared.open(url, options: [:]) { success in
+            if !success {
+                DispatchQueue.main.async {
+                    isShowingPhoneUnavailable = true
+                }
+            }
+        }
+    }
+
+    private func phoneURL(for phone: String) -> URL? {
+        let allowedCharacters = CharacterSet(charactersIn: "+0123456789")
+        let normalized = phone.unicodeScalars
+            .filter { allowedCharacters.contains($0) }
+            .map(String.init)
+            .joined()
+        guard !normalized.isEmpty else { return nil }
+        return URL(string: "tel:\(normalized)")
+    }
+}
+
+private struct ContactEmailSection: View {
+    let items: [LabeledValue]
+    @State private var isShowingMailUnavailable = false
+
+    var body: some View {
+        let visibleItems = items.filter {
+            !$0.value.isBlank || !$0.label.isBlank
+        }
+        if !visibleItems.isEmpty {
+            Section("section.emails") {
+                ForEach(visibleItems) { item in
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if !item.value.isBlank {
+                                Button {
+                                    openEmail(item.value)
+                                } label: {
+                                    Text(item.value)
+                                        .foregroundStyle(.blue)
+                                        .underline()
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(Text("email.compose"))
+                            }
+
+                            if !item.label.isBlank {
+                                Text(item.label.googleContactsDisplayLabel)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 2)
+
+                        Spacer(minLength: 0)
+
+                        Button {
+                            UIPasteboard.general.string = item.value
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(.blue)
+                                .frame(width: 34, height: 34)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(item.value.isBlank)
+                        .accessibilityLabel(Text("email.copy"))
+                    }
+                }
+            }
+            .alert("warning.title", isPresented: $isShowingMailUnavailable) {
+                Button("action.ok", role: .cancel) {}
+            } message: {
+                Text("email.openUnavailable")
+            }
+        }
+    }
+
+    private func openEmail(_ email: String) {
+        guard let url = mailtoURL(for: email) else { return }
+        UIApplication.shared.open(url, options: [:]) { success in
+            if !success {
+                DispatchQueue.main.async {
+                    isShowingMailUnavailable = true
+                }
+            }
+        }
+    }
+
+    private func mailtoURL(for email: String) -> URL? {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: "mailto:\(trimmed)")
     }
 }
 
@@ -451,6 +773,20 @@ private extension String {
         case "pager": "Pager"
         default: self
         }
+    }
+}
+
+private extension PostalAddress {
+    var displayAddress: String {
+        [
+            streetAddress,
+            extendedAddress,
+            city,
+            region,
+            postalCode,
+            poBox,
+            country
+        ].joinedNonEmpty(separator: ", ")
     }
 }
 
