@@ -10,6 +10,8 @@ final class GoogleAuthService {
     private(set) var user: GoogleSignedInUser?
     private(set) var isRestoring = false
     private(set) var isSigningIn = false
+    private(set) var didRestorePreviousSignIn = false
+    private(set) var errorMessageKey: String?
     var errorMessage: String?
 
     var isConfigured: Bool {
@@ -20,14 +22,21 @@ final class GoogleAuthService {
     }
 
     func restorePreviousSignIn() {
-        guard isConfigured else { return }
+        guard isConfigured else {
+            didRestorePreviousSignIn = true
+            setLocalizedError("googleAuth.notConfigured")
+            return
+        }
+        guard !isRestoring else { return }
         isRestoring = true
-        errorMessage = nil
+        didRestorePreviousSignIn = false
+        clearError()
 
         GIDSignIn.sharedInstance.restorePreviousSignIn { [weak self] user, error in
             Task { @MainActor in
                 guard let self else { return }
                 self.isRestoring = false
+                self.didRestorePreviousSignIn = true
 
                 if let error {
                     if error.isNoPreviousGoogleSignIn {
@@ -35,7 +44,7 @@ final class GoogleAuthService {
                         return
                     }
 
-                    self.errorMessage = error.localizedDescription
+                    self.setRawError(error.localizedDescription)
                     self.user = nil
                     return
                 }
@@ -47,17 +56,17 @@ final class GoogleAuthService {
 
     func signIn() {
         guard isConfigured else {
-            errorMessage = String(localized: "googleAuth.notConfigured")
+            setLocalizedError("googleAuth.notConfigured")
             return
         }
 
         guard let presentingViewController = UIApplication.shared.topMostViewController else {
-            errorMessage = String(localized: "googleAuth.noPresenter")
+            setLocalizedError("googleAuth.noPresenter")
             return
         }
 
         isSigningIn = true
-        errorMessage = nil
+        clearError()
 
         GIDSignIn.sharedInstance.signIn(
             withPresenting: presentingViewController,
@@ -69,13 +78,13 @@ final class GoogleAuthService {
                 self.isSigningIn = false
 
                 if let error {
-                    self.errorMessage = error.localizedDescription
+                    self.setLocalizedError(error.isCanceledGoogleSignIn ? "googleAuth.signInCancelled" : "googleAuth.signInFailed")
                     self.user = nil
                     return
                 }
 
                 guard let result else {
-                    self.errorMessage = String(localized: "googleAuth.emptyResult")
+                    self.setLocalizedError("googleAuth.emptyResult")
                     self.user = nil
                     return
                 }
@@ -88,7 +97,12 @@ final class GoogleAuthService {
     func signOut() {
         GIDSignIn.sharedInstance.signOut()
         user = nil
+        clearError()
+    }
+
+    func clearError() {
         errorMessage = nil
+        errorMessageKey = nil
     }
 
     func freshAccessToken() async throws -> String {
@@ -111,6 +125,16 @@ final class GoogleAuthService {
                 continuation.resume(returning: token)
             }
         }
+    }
+
+    private func setLocalizedError(_ key: String) {
+        errorMessageKey = key
+        errorMessage = String(localized: String.LocalizationValue(key))
+    }
+
+    private func setRawError(_ message: String) {
+        errorMessageKey = nil
+        errorMessage = message
     }
 }
 
@@ -150,6 +174,11 @@ private extension Error {
     var isNoPreviousGoogleSignIn: Bool {
         let nsError = self as NSError
         return nsError.domain == "com.google.GIDSignIn" && nsError.code == -4
+    }
+
+    var isCanceledGoogleSignIn: Bool {
+        let nsError = self as NSError
+        return nsError.domain == "com.google.GIDSignIn" && nsError.code == -5
     }
 }
 

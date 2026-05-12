@@ -67,7 +67,7 @@ struct SettingsView: View {
         .navigationTitle("settings.title")
         .alert("error.title", isPresented: Binding(
             get: { googleAuth.errorMessage != nil },
-            set: { if !$0 { googleAuth.errorMessage = nil } }
+            set: { if !$0 { googleAuth.clearError() } }
         )) {
             Button("action.ok", role: .cancel) {}
         } message: {

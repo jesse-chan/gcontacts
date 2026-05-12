@@ -33,6 +33,7 @@
 "contacts.delete.message" = "這位聯絡人會從 Google Contacts 刪除。";
 "contacts.delete.title" = "要刪除聯絡人嗎？";
 "contacts.favorites %lld" = "我的最愛（%lld）";
+"contacts.filter" = "篩選";
 "contacts.search" = "搜尋聯絡人";
 "contacts.search.clear" = "清除搜尋";
 "contacts.title" = "聯絡人";
@@ -66,8 +67,12 @@
 "googleAuth.notConfigured" = "尚未設定 Google Sign-In。";
 "googleAuth.notSignedIn" = "尚未登入 Google。";
 "googleAuth.restoring" = "正在還原 Google 登入狀態...";
+"googleAuth.requiredMessage" = "請先登入 Google，才能存取與管理聯絡人。";
+"googleAuth.requiredTitle" = "需要登入 Google";
 "googleAuth.signedIn" = "已登入";
 "googleAuth.signedOut" = "未登入";
+"googleAuth.signInCancelled" = "Google 登入已取消。";
+"googleAuth.signInFailed" = "Google 登入未完成。";
 "googleAuth.signingIn" = "正在登入...";
 "googleAuth.signOut" = "登出";
 "labels.add" = "新增標籤";

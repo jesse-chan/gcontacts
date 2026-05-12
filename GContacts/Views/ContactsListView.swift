@@ -2,10 +2,11 @@ import SwiftUI
 
 struct ContactsListView: View {
     @Environment(ContactStore.self) private var store
-    let selectedLabel: ContactLabelSelection
+    @Binding var selectedLabel: ContactLabelSelection
     let scrollToTopTrigger: Int
     @State private var searchText = ""
     @State private var contactToEdit: Contact?
+    @State private var isShowingLabelFilter = false
 
     private var filteredContacts: [Contact] {
         let labelFilteredContacts = if let labelID = selectedLabel.id {
@@ -86,13 +87,22 @@ struct ContactsListView: View {
             ContactDetailView(contact: contact)
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    isShowingLabelFilter = true
+                } label: {
+                    Label("contacts.filter", systemImage: "line.3.horizontal.decrease.circle")
+                }
+
                 Button {
                     contactToEdit = .empty
                 } label: {
                     Label("contacts.add", systemImage: "plus")
                 }
             }
+        }
+        .sheet(isPresented: $isShowingLabelFilter) {
+            ContactLabelFilterSheet(selectedLabel: $selectedLabel)
         }
         .sheet(item: $contactToEdit) { contact in
             ContactEditorView(contact: contact)
@@ -111,11 +121,84 @@ struct ContactsListView: View {
         guard selectedLabel.id != nil else {
             return String(localized: "contacts.title")
         }
-        return "\(String(localized: "contacts.title"))-\(selectedLabel.name)"
+        return "\(String(localized: "contacts.title")) - \(selectedLabel.name)"
     }
 
     private var listIdentity: String {
         "\(selectedLabel.id ?? "all")-\(scrollToTopTrigger)"
+    }
+}
+
+private struct ContactLabelFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(ContactStore.self) private var store
+    @Binding var selectedLabel: ContactLabelSelection
+
+    private var sortedLabels: [ContactLabel] {
+        store.labels.sorted {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ContactLabelFilterRow(
+                    title: String(localized: "labels.all"),
+                    subtitle: String(localized: "labels.count \(store.contacts.count)"),
+                    isSelected: selectedLabel.id == nil
+                ) {
+                    selectedLabel = .all
+                    dismiss()
+                }
+
+                ForEach(sortedLabels) { label in
+                    ContactLabelFilterRow(
+                        title: label.name,
+                        subtitle: String(localized: "labels.count \(label.contactCount)"),
+                        isSelected: selectedLabel.id == label.id
+                    ) {
+                        selectedLabel = ContactLabelSelection(id: label.id, name: label.name)
+                        dismiss()
+                    }
+                }
+            }
+            .navigationTitle("contacts.filter")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium, .large])
+    }
+}
+
+private struct ContactLabelFilterRow: View {
+    let title: String
+    let subtitle: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(isSelected ? .blue : .secondary)
+                    .frame(width: 34, height: 34)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.title3)
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

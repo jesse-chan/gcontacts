@@ -16,7 +16,7 @@ struct GContactsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppShellView()
+            StartupAuthGateView()
                 .environment(contactStore)
                 .environment(googleAuthService)
                 .preferredColorScheme(appTheme.colorScheme)

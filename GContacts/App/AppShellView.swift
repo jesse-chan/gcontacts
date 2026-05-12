@@ -1,4 +1,7 @@
+import Darwin
+import GoogleSignInSwift
 import SwiftUI
+import UIKit
 
 enum AppTab: Hashable {
     case contacts
@@ -24,7 +27,7 @@ struct AppShellView: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 ContactsListView(
-                    selectedLabel: selectedLabel,
+                    selectedLabel: $selectedLabel,
                     scrollToTopTrigger: contactListScrollToTopTrigger
                 )
             }
@@ -34,10 +37,7 @@ struct AppShellView: View {
             .tag(AppTab.contacts)
 
             NavigationStack {
-                LabelsView(selectedLabel: $selectedLabel) {
-                    contactListScrollToTopTrigger += 1
-                    selectedTab = .contacts
-                }
+                LabelsView()
             }
             .tabItem {
                 Label("tab.labels", systemImage: "tag")
@@ -78,7 +78,116 @@ struct AppShellView: View {
     }
 }
 
+struct StartupAuthGateView: View {
+    @Environment(GoogleAuthService.self) private var googleAuthService
+    @State private var isShowingSignInFailure = false
+    @State private var signInFailureMessage = ""
+
+    var body: some View {
+        Group {
+            if googleAuthService.user != nil {
+                AppShellView()
+            } else if googleAuthService.isRestoring || !googleAuthService.didRestorePreviousSignIn {
+                ProgressView(SystemAuthLocalization.string("googleAuth.restoring"))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.systemGroupedBackground))
+            } else {
+                GoogleRequiredSignInView {
+                    googleAuthService.signIn()
+                }
+            }
+        }
+        .onChange(of: googleAuthService.errorMessage) { _, message in
+            presentSignInFailureIfNeeded(message)
+        }
+        .onChange(of: googleAuthService.isSigningIn) { _, isSigningIn in
+            guard !isSigningIn else { return }
+            presentSignInFailureIfNeeded(googleAuthService.errorMessage)
+        }
+        .onAppear {
+            presentSignInFailureIfNeeded(googleAuthService.errorMessage)
+        }
+        .alert(SystemAuthLocalization.string("error.title"), isPresented: $isShowingSignInFailure) {
+            Button(SystemAuthLocalization.string("action.ok"), role: .cancel) {
+                exit(0)
+            }
+        } message: {
+            Text(signInFailureMessage)
+        }
+    }
+
+    private func presentSignInFailureIfNeeded(_ message: String?) {
+        guard
+            googleAuthService.user == nil,
+            let message,
+            !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return }
+        if let key = googleAuthService.errorMessageKey {
+            signInFailureMessage = SystemAuthLocalization.string(key)
+        } else {
+            signInFailureMessage = message
+        }
+        googleAuthService.clearError()
+        isShowingSignInFailure = true
+    }
+}
+
+private struct GoogleRequiredSignInView: View {
+    let onSignIn: () -> Void
+
+    var body: some View {
+        VStack(spacing: 22) {
+            Spacer()
+
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.system(size: 64, weight: .regular))
+                .foregroundStyle(.blue)
+
+            VStack(spacing: 8) {
+                Text(SystemAuthLocalization.string("googleAuth.requiredTitle"))
+                    .font(.title2.weight(.bold))
+
+                Text(SystemAuthLocalization.string("googleAuth.requiredMessage"))
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            GoogleSignInButton(action: onSignIn)
+                .frame(maxWidth: 280)
+                .environment(\.locale, SystemAuthLocalization.locale)
+
+            Spacer()
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
+    }
+}
+
+private enum SystemAuthLocalization {
+    static var locale: Locale {
+        Locale(identifier: localizationIdentifier)
+    }
+
+    static func string(_ key: String) -> String {
+        guard
+            let path = Bundle.main.path(forResource: localizationIdentifier, ofType: "lproj"),
+            let bundle = Bundle(path: path)
+        else {
+            return NSLocalizedString(key, comment: "")
+        }
+        return NSLocalizedString(key, bundle: bundle, comment: "")
+    }
+
+    private static var localizationIdentifier: String {
+        let preferredLanguage = Locale.preferredLanguages.first ?? Locale.current.identifier
+        return preferredLanguage.lowercased().hasPrefix("zh") ? "zh-Hant" : "en"
+    }
+}
+
 #Preview {
-    AppShellView()
+    StartupAuthGateView()
         .environment(ContactStore(service: MockGoogleContactsService()))
+        .environment(GoogleAuthService())
 }

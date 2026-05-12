@@ -33,6 +33,7 @@
 "contacts.delete.message" = "This contact will be deleted from Google Contacts.";
 "contacts.delete.title" = "Delete contact?";
 "contacts.favorites %lld" = "Favorites (%lld)";
+"contacts.filter" = "Filter";
 "contacts.search" = "Search contacts";
 "contacts.search.clear" = "Clear search";
 "contacts.title" = "Contacts";
@@ -66,8 +67,12 @@
 "googleAuth.notConfigured" = "Google Sign-In is not configured yet.";
 "googleAuth.notSignedIn" = "You are not signed in to Google.";
 "googleAuth.restoring" = "Restoring Google sign-in...";
+"googleAuth.requiredMessage" = "Sign in with Google to access and manage your contacts.";
+"googleAuth.requiredTitle" = "Google Sign-In required";
 "googleAuth.signedIn" = "Signed in";
 "googleAuth.signedOut" = "Signed out";
+"googleAuth.signInCancelled" = "Google Sign-In was cancelled.";
+"googleAuth.signInFailed" = "Google Sign-In was not completed.";
 "googleAuth.signingIn" = "Signing in...";
 "googleAuth.signOut" = "Sign out";
 "labels.add" = "Add label";

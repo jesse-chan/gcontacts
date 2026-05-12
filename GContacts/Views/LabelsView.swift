@@ -2,8 +2,6 @@ import SwiftUI
 
 struct LabelsView: View {
     @Environment(ContactStore.self) private var store
-    @Binding var selectedLabel: ContactLabelSelection
-    let onSelectLabel: () -> Void
     @State private var newLabelName = ""
     @State private var editingLabel: ContactLabel?
     @State private var labelPendingDeletion: ContactLabel?
@@ -33,24 +31,14 @@ struct LabelsView: View {
             }
 
             Section("labels.all") {
-                LabelSelectionRow(
-                    title: String(localized: "labels.all"),
-                    subtitle: String(localized: "labels.count \(store.contacts.count)"),
-                    isSelected: selectedLabel.id == nil
-                ) {
-                    selectedLabel = .all
-                    onSelectLabel()
-                }
-
                 ForEach(sortedLabels) { label in
                     HStack(spacing: 16) {
-                        LabelSelectionRow(
-                            title: label.name,
-                            subtitle: String(localized: "labels.count \(label.contactCount)"),
-                            isSelected: selectedLabel.id == label.id
-                        ) {
-                            selectedLabel = ContactLabelSelection(id: label.id, name: label.name)
-                            onSelectLabel()
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(label.name)
+                                .foregroundStyle(.primary)
+                            Text("labels.count \(label.contactCount)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
 
                         Spacer()
@@ -98,9 +86,6 @@ struct LabelsView: View {
             Button("action.delete", role: .destructive) {
                 Task {
                     await store.deleteLabel(label)
-                    if selectedLabel.id == label.id {
-                        selectedLabel = .all
-                    }
                 }
             }
             Button("action.cancel", role: .cancel) {}
@@ -115,37 +100,6 @@ struct LabelsView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
-    }
-}
-
-private struct LabelSelectionRow: View {
-    let title: String
-    let subtitle: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(isSelected ? .blue : .secondary)
-                    .frame(width: 24, height: 24)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .foregroundStyle(.primary)
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
