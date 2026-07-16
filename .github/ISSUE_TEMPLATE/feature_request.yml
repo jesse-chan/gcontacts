@@ -1,0 +1,74 @@
+name: 功能建議 / Feature request
+description: 建議 ContactDeck 的新功能或改善方式 / Suggest a ContactDeck feature or improvement
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感謝你的建議。請描述想解決的問題與使用情境，避免提供真實聯絡人或帳戶資料。
+
+        Thank you for your suggestion. Describe the problem and use case without including real contact or account data.
+
+  - type: checkboxes
+    id: existing-request
+    attributes:
+      label: 現有建議 / Existing requests
+      options:
+        - label: 我已搜尋現有 Issues，沒有找到相同建議。/ I searched existing issues and did not find this request.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解決的問題 / Problem to solve
+      description: 目前遇到什麼困難？/ What is difficult with the current experience?
+      placeholder: 當我……時，希望能更容易…… / When I..., I want an easier way to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建議功能 / Proposed feature
+      description: 你希望 ContactDeck 如何改善？/ How would you like ContactDeck to improve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 使用情境 / Use case
+      description: 什麼時候會使用這項功能？/ When would you use this feature?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代做法 / Alternatives
+      description: 目前是否有其他解決方式？/ Is there another way to accomplish this today?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 功能類型 / Area
+      options:
+        - 聯絡人瀏覽與搜尋 / Contact browsing and search
+        - 聯絡人編輯 / Contact editing
+        - 標籤管理 / Label management
+        - Google 同步 / Google sync
+        - 外觀或語言 / Appearance or language
+        - 隱私或安全 / Privacy or security
+        - 其他 / Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隱私確認 / Privacy confirmation
+      options:
+        - label: 我確認內容與附件不包含個人資料、聯絡人資料或 Google access token。/ I confirm that this request and its attachments contain no personal data, contact data, or Google access tokens.
+          required: true

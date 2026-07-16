@@ -1,0 +1,96 @@
+name: 錯誤回報 / Bug report
+description: 回報 ContactDeck 使用時發生的問題 / Report a problem with ContactDeck
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感謝你協助改善 ContactDeck。/ Thank you for helping improve ContactDeck.
+
+        **請勿提供聯絡人姓名、電話、電子郵件、Google access token、帳戶資料或其他敏感資訊。上傳截圖前請先遮蔽個人資料。**
+
+        **Do not include contact names, phone numbers, email addresses, Google access tokens, account details, or other sensitive information. Remove personal data from screenshots before attaching them.**
+
+  - type: checkboxes
+    id: existing-issue
+    attributes:
+      label: 現有問題 / Existing issues
+      options:
+        - label: 我已搜尋現有 Issues，沒有找到相同問題。/ I searched existing issues and did not find this problem.
+          required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: ContactDeck 版本 / App version
+      description: 可在 App Store 或 ContactDeck 的版本資訊中查看。/ Check the App Store or ContactDeck version information.
+      placeholder: 例如 / Example 1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: ios-version
+    attributes:
+      label: iOS 版本 / iOS version
+      placeholder: 例如 / Example iOS 18.5
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 問題類型 / Area
+      options:
+        - Google 登入 / Google Sign-In
+        - 聯絡人同步 / Contact sync
+        - 新增或編輯聯絡人 / Contact editing
+        - 刪除聯絡人 / Contact deletion
+        - 標籤管理 / Label management
+        - 外觀或語言 / Appearance or language
+        - 其他 / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 重現步驟 / Steps to reproduce
+      description: 請依照發生順序列出操作。/ List the actions in the order they occurred.
+      placeholder: |
+        1. 開啟 ContactDeck / Open ContactDeck
+        2. 點選…… / Tap...
+        3. 發生…… / The problem appears...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 預期結果 / Expected behavior
+      description: 你原本預期會發生什麼？/ What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 實際結果 / Actual behavior
+      description: 實際發生了什麼？請包含畫面顯示的非敏感錯誤訊息。/ What actually happened? Include any non-sensitive error message shown on screen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 其他資訊 / Additional information
+      description: 可以附上已遮蔽個人資料的截圖。/ You may attach screenshots after removing personal data.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隱私確認 / Privacy confirmation
+      options:
+        - label: 我確認內容與附件不包含個人資料、聯絡人資料或 Google access token。/ I confirm that this report and its attachments contain no personal data, contact data, or Google access tokens.
+          required: true
