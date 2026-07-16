@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ContactDeck Support: help with sign-in, syncing, account access, and reporting issues.">
+  <meta name="theme-color" content="#06142f">
+  <title>Support — ContactDeck</title>
+  <link rel="icon" href="../assets/app-icon.png">
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary navigation">
+      <a class="brand" href="./"><img src="../assets/app-icon.png" alt=""><span>ContactDeck</span></a>
+      <div class="nav-links">
+        <a href="./">Home</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="../support.html" class="language-link" lang="zh-Hant">繁體中文</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="privacy-hero">
+      <div class="privacy-hero-inner">
+        <p class="eyebrow">ContactDeck</p>
+        <h1>Support</h1>
+        <p>Use these steps when you have trouble signing in, syncing, or managing contacts.</p>
+      </div>
+    </section>
+
+    <article class="legal">
+      <p class="support-intro">ContactDeck connects directly from your device to the Google People API. Most issues can be resolved by checking your network, Google authorization, or syncing again.</p>
+
+      <div class="support-grid">
+        <section class="support-card">
+          <h2>Unable to sign in with Google</h2>
+          <ol>
+            <li>Make sure your device has a working internet connection.</li>
+            <li>Reopen ContactDeck and try Google Sign-In again.</li>
+            <li>Confirm that you selected the Google Account whose contacts you want to manage.</li>
+            <li>If you previously revoked access, grant contact access again during sign-in.</li>
+          </ol>
+        </section>
+
+        <section class="support-card">
+          <h2>Contacts are not updating</h2>
+          <ol>
+            <li>Pull down on the contacts list to sync your contacts again.</li>
+            <li>Confirm that ContactDeck displays the correct Google Account.</li>
+            <li>Check <a href="https://contacts.google.com/">Google Contacts</a> to confirm the data exists in your account.</li>
+            <li>Try again later; a Google service or network interruption may cause a temporary error.</li>
+          </ol>
+        </section>
+
+        <section class="support-card">
+          <h2>Sign out and clear local data</h2>
+          <p>Open ContactDeck Settings and select “Sign out and clear local data.” This signs you out of Google and removes ContactDeck contact data from the device. It does not delete contacts in your Google Account.</p>
+        </section>
+
+        <section class="support-card">
+          <h2>Revoke Google access</h2>
+          <p>You can visit your <a href="https://myaccount.google.com/connections">Google Account third-party connections</a> at any time, find ContactDeck, and revoke access. You will need to grant access again the next time you sign in.</p>
+        </section>
+      </div>
+
+      <section class="support-section">
+        <h2>Before editing or deleting contacts</h2>
+        <p>ContactDeck synchronizes contact creation, updates, deletion, and label actions with your Google Account. Review or back up important data in Google Contacts before making significant or bulk changes.</p>
+      </section>
+
+      <section class="support-section">
+        <h2>Report a problem</h2>
+        <p>If the steps above do not resolve the issue, report it through GitHub Issues. To help us investigate, include:</p>
+        <ul>
+          <li>Your ContactDeck version and iOS version</li>
+          <li>The steps you took before the problem appeared</li>
+          <li>What you expected and what actually happened</li>
+          <li>Any error message shown on screen</li>
+        </ul>
+        <div class="safety-notice"><strong>Protect your privacy:</strong> GitHub Issues is public. Do not post contact names, phone numbers, email addresses, Google access tokens, account details, or other sensitive information. Remove personal data from screenshots before attaching them.</div>
+        <div class="support-actions">
+          <a class="button button-primary" href="https://github.com/jesse-chan/gcontacts/issues/new">Report an issue</a>
+          <a class="button button-secondary" href="privacy.html">Read the Privacy Policy</a>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>© 2026 ContactDeck</div>
+      <div class="footer-links"><a href="./">Home</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Service</a></div>
+    </div>
+  </footer>
+</body>
+</html>
