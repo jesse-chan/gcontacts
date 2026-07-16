@@ -4,7 +4,6 @@ final class GooglePeopleContactsService: GoogleContactsService {
     private let authService: GoogleAuthService
     private let baseURL = URL(string: "https://people.googleapis.com/v1")!
     private let session: URLSession
-    private let defaults: UserDefaults
 
     private let personFields = [
         "addresses",
@@ -40,48 +39,25 @@ final class GooglePeopleContactsService: GoogleContactsService {
         "userDefined"
     ].joined(separator: ",")
 
-    init(authService: GoogleAuthService, session: URLSession = .shared, defaults: UserDefaults = .standard) {
+    init(authService: GoogleAuthService, session: URLSession = .shared) {
         self.authService = authService
         self.session = session
-        self.defaults = defaults
     }
 
     func fetchContacts() async throws -> [Contact] {
-        let cacheKey = await contactCacheKey()
-
-        guard
-            let syncToken = defaults.string(forKey: cacheKey.syncToken),
-            var cachedContacts = cachedContacts(forKey: cacheKey.contacts)
-        else {
-            return try await fullSyncContacts(cacheKey: cacheKey)
-        }
-
-        do {
-            let sync = try await fetchContactChanges(syncToken: syncToken)
-            apply(sync.people, to: &cachedContacts)
-            let mergedContacts = sortedContacts(cachedContacts)
-            save(mergedContacts, syncToken: sync.nextSyncToken, cacheKey: cacheKey)
-            return mergedContacts
-        } catch GooglePeopleAPIError.requestFailed(let statusCode, let message)
-            where statusCode == 400 && message.isExpiredSyncTokenMessage {
-            defaults.removeObject(forKey: cacheKey.syncToken)
-            defaults.removeObject(forKey: cacheKey.contacts)
-            return try await fullSyncContacts(cacheKey: cacheKey)
-        }
+        try await fullSyncContacts()
     }
 
-    private func fullSyncContacts(cacheKey: ContactCacheKey) async throws -> [Contact] {
+    private func fullSyncContacts() async throws -> [Contact] {
         var pageToken: String?
         var people: [PeoplePerson] = []
-        var nextSyncToken: String?
 
         repeat {
             var components = URLComponents(url: baseURL.appending(path: "people/me/connections"), resolvingAgainstBaseURL: false)!
             components.queryItems = [
                 URLQueryItem(name: "personFields", value: personFields),
                 URLQueryItem(name: "sources", value: "READ_SOURCE_TYPE_CONTACT"),
-                URLQueryItem(name: "pageSize", value: "1000"),
-                URLQueryItem(name: "requestSyncToken", value: "true")
+                URLQueryItem(name: "pageSize", value: "1000")
             ]
             if let pageToken {
                 components.queryItems?.append(URLQueryItem(name: "pageToken", value: pageToken))
@@ -90,39 +66,9 @@ final class GooglePeopleContactsService: GoogleContactsService {
             let response: PeopleConnectionsResponse = try await send(components.url!)
             people.append(contentsOf: response.connections ?? [])
             pageToken = response.nextPageToken
-            nextSyncToken = response.nextSyncToken ?? nextSyncToken
         } while pageToken != nil
 
-        let contacts = sortedContacts(people.compactMap { $0.metadata?.deleted == true ? nil : Contact(person: $0) })
-        save(contacts, syncToken: nextSyncToken, cacheKey: cacheKey)
-        return contacts
-    }
-
-    private func fetchContactChanges(syncToken: String) async throws -> (people: [PeoplePerson], nextSyncToken: String?) {
-        var pageToken: String?
-        var people: [PeoplePerson] = []
-        var nextSyncToken: String?
-
-        repeat {
-            var components = URLComponents(url: baseURL.appending(path: "people/me/connections"), resolvingAgainstBaseURL: false)!
-            components.queryItems = [
-                URLQueryItem(name: "personFields", value: personFields),
-                URLQueryItem(name: "sources", value: "READ_SOURCE_TYPE_CONTACT"),
-                URLQueryItem(name: "pageSize", value: "1000"),
-                URLQueryItem(name: "requestSyncToken", value: "true"),
-                URLQueryItem(name: "syncToken", value: syncToken)
-            ]
-            if let pageToken {
-                components.queryItems?.append(URLQueryItem(name: "pageToken", value: pageToken))
-            }
-
-            let response: PeopleConnectionsResponse = try await send(components.url!)
-            people.append(contentsOf: response.connections ?? [])
-            pageToken = response.nextPageToken
-            nextSyncToken = response.nextSyncToken ?? nextSyncToken
-        } while pageToken != nil
-
-        return (people, nextSyncToken)
+        return sortedContacts(people.compactMap { $0.metadata?.deleted == true ? nil : Contact(person: $0) })
     }
 
     func fetchLabels() async throws -> [ContactLabel] {
@@ -158,9 +104,7 @@ final class GooglePeopleContactsService: GoogleContactsService {
 
         let person = PeoplePerson(contact: contact, includeMetadata: false)
         let created: PeoplePerson = try await send(components.url!, method: "POST", body: person)
-        let createdContact = Contact(person: created)
-        await replaceCachedContact(createdContact)
-        return createdContact
+        return Contact(person: created)
     }
 
     func updateContact(_ contact: Contact) async throws -> Contact {
@@ -177,9 +121,7 @@ final class GooglePeopleContactsService: GoogleContactsService {
 
         let person = PeoplePerson(contact: contact, includeMetadata: true)
         let updated: PeoplePerson = try await send(components.url!, method: "PATCH", body: person)
-        let updatedContact = Contact(person: updated)
-        await replaceCachedContact(updatedContact)
-        return updatedContact
+        return Contact(person: updated)
     }
 
     func updateContactPhoto(_ contact: Contact, photoData: Data) async throws -> Contact {
@@ -197,9 +139,7 @@ final class GooglePeopleContactsService: GoogleContactsService {
         guard let person = response.person else {
             throw GooglePeopleAPIError.invalidResponse
         }
-        let updatedContact = Contact(person: person)
-        await replaceCachedContact(updatedContact)
-        return updatedContact
+        return Contact(person: person)
     }
 
     func deleteContactPhoto(_ contact: Contact) async throws -> Contact {
@@ -217,9 +157,7 @@ final class GooglePeopleContactsService: GoogleContactsService {
         guard let person = response.person else {
             throw GooglePeopleAPIError.invalidResponse
         }
-        let updatedContact = Contact(person: person)
-        await replaceCachedContact(updatedContact)
-        return updatedContact
+        return Contact(person: person)
     }
 
     func deleteContact(id: Contact.ID) async throws {
@@ -229,7 +167,6 @@ final class GooglePeopleContactsService: GoogleContactsService {
 
         let url = baseURL.appending(path: "\(id):deleteContact")
         let _: EmptyResponse = try await send(url, method: "DELETE")
-        await removeCachedContact(id: id)
     }
 
     func createLabel(named name: String) async throws -> ContactLabel {
@@ -306,78 +243,10 @@ final class GooglePeopleContactsService: GoogleContactsService {
         return try JSONDecoder.peopleAPI.decode(Response.self, from: data)
     }
 
-    private func contactCacheKey() async -> ContactCacheKey {
-        let accountID = await MainActor.run {
-            authService.user?.userID ?? authService.user?.email ?? "default"
-        }
-        return ContactCacheKey(accountID: accountID)
-    }
-
-    private func cachedContacts(forKey key: String) -> [Contact]? {
-        guard let data = defaults.data(forKey: key) else { return nil }
-        return try? JSONDecoder.peopleAPI.decode([Contact].self, from: data)
-    }
-
-    private func save(_ contacts: [Contact], syncToken: String?, cacheKey: ContactCacheKey) {
-        if let data = try? JSONEncoder.peopleAPI.encode(contacts) {
-            defaults.set(data, forKey: cacheKey.contacts)
-        }
-
-        if let syncToken {
-            defaults.set(syncToken, forKey: cacheKey.syncToken)
-        }
-    }
-
-    private func apply(_ people: [PeoplePerson], to contacts: inout [Contact]) {
-        for person in people {
-            guard let id = person.resourceName else { continue }
-            if person.metadata?.deleted == true {
-                contacts.removeAll { $0.id == id || $0.resourceName == id }
-                continue
-            }
-
-            replace(Contact(person: person), in: &contacts)
-        }
-    }
-
-    private func replace(_ contact: Contact, in contacts: inout [Contact]) {
-        guard let index = contacts.firstIndex(where: { $0.id == contact.id }) else {
-            contacts.append(contact)
-            return
-        }
-        contacts[index] = contact
-    }
-
-    private func replaceCachedContact(_ contact: Contact) async {
-        let cacheKey = await contactCacheKey()
-        guard var contacts = cachedContacts(forKey: cacheKey.contacts) else { return }
-        replace(contact, in: &contacts)
-        save(sortedContacts(contacts), syncToken: nil, cacheKey: cacheKey)
-    }
-
-    private func removeCachedContact(id: Contact.ID) async {
-        let cacheKey = await contactCacheKey()
-        guard var contacts = cachedContacts(forKey: cacheKey.contacts) else { return }
-        contacts.removeAll { $0.id == id || $0.resourceName == id }
-        save(sortedContacts(contacts), syncToken: nil, cacheKey: cacheKey)
-    }
-
     private func sortedContacts(_ contacts: [Contact]) -> [Contact] {
         contacts.sorted {
             $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
         }
-    }
-}
-
-private struct ContactCacheKey {
-    let accountID: String
-
-    var contacts: String {
-        "googlePeopleContacts.contacts.\(accountID)"
-    }
-
-    var syncToken: String {
-        "googlePeopleContacts.syncToken.\(accountID)"
     }
 }
 
@@ -413,7 +282,6 @@ enum GooglePeopleAPIError: LocalizedError {
 private struct PeopleConnectionsResponse: Decodable {
     let connections: [PeoplePerson]?
     let nextPageToken: String?
-    let nextSyncToken: String?
 }
 
 private struct ContactGroupsResponse: Decodable {
@@ -795,12 +663,6 @@ private extension Array {
 private extension String {
     var nilIfEmpty: String? {
         trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : self
-    }
-
-    var isExpiredSyncTokenMessage: Bool {
-        localizedCaseInsensitiveContains("EXPIRED_SYNC_TOKEN")
-            || localizedCaseInsensitiveContains("sync token is expired")
-            || localizedCaseInsensitiveContains("expired sync token")
     }
 }
 

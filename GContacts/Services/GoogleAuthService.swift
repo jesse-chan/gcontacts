@@ -6,10 +6,13 @@ import UIKit
 @Observable
 final class GoogleAuthService {
     private let contactsScope = "https://www.googleapis.com/auth/contacts"
+    private let installationMarkerKey = "googleAuth.installationInitialized"
+    private let defaults: UserDefaults
 
     private(set) var user: GoogleSignedInUser?
     private(set) var isRestoring = false
     private(set) var isSigningIn = false
+    private(set) var isDisconnecting = false
     private(set) var didRestorePreviousSignIn = false
     private(set) var errorMessageKey: String?
     var errorMessage: String?
@@ -19,6 +22,10 @@ final class GoogleAuthService {
             return false
         }
         return !clientID.isEmpty && !clientID.contains("REPLACE_WITH")
+    }
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
     }
 
     func restorePreviousSignIn() {
@@ -32,25 +39,8 @@ final class GoogleAuthService {
         didRestorePreviousSignIn = false
         clearError()
 
-        GIDSignIn.sharedInstance.restorePreviousSignIn { [weak self] user, error in
-            Task { @MainActor in
-                guard let self else { return }
-                self.isRestoring = false
-                self.didRestorePreviousSignIn = true
-
-                if let error {
-                    if error.isNoPreviousGoogleSignIn {
-                        self.user = nil
-                        return
-                    }
-
-                    self.setRawError(error.localizedDescription)
-                    self.user = nil
-                    return
-                }
-
-                self.user = user.map(GoogleSignedInUser.init)
-            }
+        Task { [weak self] in
+            await self?.restoreSignInState()
         }
     }
 
@@ -94,10 +84,20 @@ final class GoogleAuthService {
         }
     }
 
-    func signOut() {
-        GIDSignIn.sharedInstance.signOut()
-        user = nil
+    func signOutAndDisconnect() async {
+        guard !isDisconnecting, user != nil else { return }
+
+        isDisconnecting = true
         clearError()
+
+        do {
+            try await GIDSignIn.sharedInstance.disconnect()
+            self.user = nil
+        } catch {
+            setRawError(error.localizedDescription)
+        }
+
+        isDisconnecting = false
     }
 
     func clearError() {
@@ -135,6 +135,65 @@ final class GoogleAuthService {
     private func setRawError(_ message: String) {
         errorMessageKey = nil
         errorMessage = message
+    }
+
+    private func restoreSignInState() async {
+        defer {
+            isRestoring = false
+            didRestorePreviousSignIn = true
+        }
+
+        do {
+            let hadExistingLocalAppData = hasExistingLocalAppData
+            clearLegacyContactCache()
+
+            if !defaults.bool(forKey: installationMarkerKey) {
+                if hadExistingLocalAppData {
+                    // Seed the marker when upgrading an existing installation.
+                    defaults.set(true, forKey: installationMarkerKey)
+                } else {
+                    if GIDSignIn.sharedInstance.hasPreviousSignIn() {
+                        _ = try await GIDSignIn.sharedInstance.restorePreviousSignIn()
+                        try await GIDSignIn.sharedInstance.disconnect()
+                    }
+
+                    defaults.set(true, forKey: installationMarkerKey)
+                    user = nil
+                    return
+                }
+            }
+
+            guard GIDSignIn.sharedInstance.hasPreviousSignIn() else {
+                user = nil
+                return
+            }
+
+            let restoredUser = try await GIDSignIn.sharedInstance.restorePreviousSignIn()
+            user = GoogleSignedInUser(user: restoredUser)
+        } catch {
+            if error.isNoPreviousGoogleSignIn {
+                defaults.set(true, forKey: installationMarkerKey)
+                user = nil
+                return
+            }
+
+            setRawError(error.localizedDescription)
+            user = nil
+        }
+    }
+
+    private func clearLegacyContactCache() {
+        defaults.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix("googlePeopleContacts.") }
+            .forEach(defaults.removeObject(forKey:))
+    }
+
+    private var hasExistingLocalAppData: Bool {
+        defaults.dictionaryRepresentation().keys.contains {
+            $0 == "appTheme" ||
+                $0 == "appLanguage" ||
+                $0.hasPrefix("googlePeopleContacts.")
+        }
     }
 }
 

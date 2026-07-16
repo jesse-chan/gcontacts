@@ -36,6 +36,7 @@
 "contacts.filter" = "篩選";
 "contacts.search" = "搜尋聯絡人";
 "contacts.search.clear" = "清除搜尋";
+"contacts.sync" = "重新同步聯絡人";
 "contacts.title" = "聯絡人";
 "customField.remove" = "移除自訂欄位";
 "customField.validation.labelRequired" = "有填入值的自訂欄位必須填寫 Label。";
@@ -59,6 +60,11 @@
 "field.label" = "標籤";
 "field.value" = "值";
 "googleAuth.configurationNote" = "在 Google Cloud 建立 iOS OAuth client 後，請到 target build settings 設定 GOOGLE_IOS_CLIENT_ID 與 GOOGLE_REVERSED_CLIENT_ID。";
+"googleAuth.disconnect" = "登出並清除本機資料";
+"googleAuth.disconnectConfirm" = "登出並清除";
+"googleAuth.disconnecting" = "正在登出並清除本機資料...";
+"googleAuth.disconnectMessage" = "這會登出 Google 並刪除此裝置上的聯絡人資料。Google 帳戶中的聯絡人不會被刪除，下次登入時需要重新授權。";
+"googleAuth.disconnectTitle" = "要登出並清除本機資料嗎？";
 "googleAuth.email" = "電子郵件";
 "googleAuth.emptyResult" = "Google Sign-In 沒有回傳使用者。";
 "googleAuth.missingAccessToken" = "Google Sign-In 沒有回傳 access token。";

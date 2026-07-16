@@ -36,6 +36,7 @@
 "contacts.filter" = "Filter";
 "contacts.search" = "Search contacts";
 "contacts.search.clear" = "Clear search";
+"contacts.sync" = "Sync contacts again";
 "contacts.title" = "Contacts";
 "customField.remove" = "Remove custom field";
 "customField.validation.labelRequired" = "Please enter a Label for every custom field with a value.";
@@ -59,6 +60,11 @@
 "field.label" = "Label";
 "field.value" = "Value";
 "googleAuth.configurationNote" = "Set GOOGLE_IOS_CLIENT_ID and GOOGLE_REVERSED_CLIENT_ID in the target build settings after creating an iOS OAuth client in Google Cloud.";
+"googleAuth.disconnect" = "Sign out and clear local data";
+"googleAuth.disconnectConfirm" = "Sign out and clear";
+"googleAuth.disconnecting" = "Signing out and clearing local data...";
+"googleAuth.disconnectMessage" = "This signs you out of Google and deletes contact data stored on this device. Contacts in your Google Account will not be deleted. You will need to grant access again the next time you sign in.";
+"googleAuth.disconnectTitle" = "Sign out and clear local data?";
 "googleAuth.email" = "Email";
 "googleAuth.emptyResult" = "Google Sign-In did not return a user.";
 "googleAuth.missingAccessToken" = "Google Sign-In did not return an access token.";

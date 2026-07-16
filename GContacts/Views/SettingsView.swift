@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(GoogleAuthService.self) private var googleAuth
     @AppStorage("appTheme") private var appTheme: AppTheme = .system
     @AppStorage("appLanguage") private var appLanguage: AppLanguage = .system
+    @State private var isConfirmingDisconnect = false
 
     var body: some View {
         Form {
@@ -28,8 +29,13 @@ struct SettingsView: View {
                     if let email = user.email {
                         LabeledContent("googleAuth.email", value: email)
                     }
-                    Button("googleAuth.signOut", role: .destructive) {
-                        googleAuth.signOut()
+                    Button("googleAuth.disconnect", role: .destructive) {
+                        isConfirmingDisconnect = true
+                    }
+                    .disabled(googleAuth.isDisconnecting)
+
+                    if googleAuth.isDisconnecting {
+                        ProgressView("googleAuth.disconnecting")
                     }
                 } else {
                     LabeledContent("settings.authStatus", value: String(localized: "googleAuth.signedOut"))
@@ -65,6 +71,20 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("settings.title")
+        .confirmationDialog(
+            "googleAuth.disconnectTitle",
+            isPresented: $isConfirmingDisconnect,
+            titleVisibility: .visible
+        ) {
+            Button("googleAuth.disconnectConfirm", role: .destructive) {
+                Task {
+                    await googleAuth.signOutAndDisconnect()
+                }
+            }
+            Button("action.cancel", role: .cancel) {}
+        } message: {
+            Text("googleAuth.disconnectMessage")
+        }
         .alert("error.title", isPresented: Binding(
             get: { googleAuth.errorMessage != nil },
             set: { if !$0 { googleAuth.clearError() } }

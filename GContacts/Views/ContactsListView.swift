@@ -89,6 +89,21 @@ struct ContactsListView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
+                    Task {
+                        await store.load()
+                    }
+                } label: {
+                    if store.isLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Label("contacts.sync", systemImage: "arrow.clockwise")
+                    }
+                }
+                .disabled(store.isLoading)
+                .accessibilityLabel("contacts.sync")
+
+                Button {
                     isShowingLabelFilter = true
                 } label: {
                     Label("contacts.filter", systemImage: "line.3.horizontal.decrease.circle")
