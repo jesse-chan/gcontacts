@@ -60,6 +60,8 @@
 "field.label" = "Label";
 "field.value" = "Value";
 "googleAuth.configurationNote" = "Set GOOGLE_IOS_CLIENT_ID and GOOGLE_REVERSED_CLIENT_ID in the target build settings after creating an iOS OAuth client in Google Cloud.";
+"googleAuth.contactsPermissionRequired" = "ContactDeck needs access to your Google contacts to work. Sign in again, select the contacts permission, then tap Continue.";
+"googleAuth.contactsPermissionRequiredTitle" = "Contacts access required";
 "googleAuth.disconnect" = "Sign out and clear local data";
 "googleAuth.disconnectConfirm" = "Sign out and clear";
 "googleAuth.disconnecting" = "Signing out and clearing local data...";

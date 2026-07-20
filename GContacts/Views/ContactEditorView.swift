@@ -84,7 +84,7 @@ struct ContactEditorView: View {
                     .disabled(!hasChanges || isSaving)
                 }
             }
-            .confirmationDialog("photo.edit", isPresented: $isShowingPhotoActions, titleVisibility: .visible) {
+            .alert("photo.edit", isPresented: $isShowingPhotoActions) {
                 Button("photo.change") {
                     isShowingPhotoPicker = true
                 }
@@ -316,17 +316,21 @@ private struct EditableNameView: View {
 private struct EditableLabeledValuesSection: View {
     let title: LocalizedStringKey
     @Binding var values: [LabeledValue]
+    @State private var valueFocusRequest: String?
 
     var body: some View {
         Section(title) {
             ForEach($values) { $value in
                 TextField("field.label", text: $value.label)
                 TextField("field.value", text: $value.value)
+                    .focusWhenRequested(fieldID: value.id, request: valueFocusRequest)
             }
             .onDelete { values.remove(atOffsets: $0) }
 
             Button("action.addField") {
-                values.append(LabeledValue())
+                let newValue = LabeledValue()
+                values.append(newValue)
+                valueFocusRequest = newValue.id
             }
         }
     }
@@ -334,17 +338,23 @@ private struct EditableLabeledValuesSection: View {
 
 private struct EditableEmailsSection: View {
     @Binding var values: [LabeledValue]
+    @State private var emailValueFocusRequest: String?
 
     var body: some View {
         Section("section.emails") {
             ForEach($values) { $value in
-                EditableEmailRow(value: $value) {
+                EditableEmailRow(
+                    value: $value,
+                    valueFocusRequest: emailValueFocusRequest
+                ) {
                     values.removeAll { $0.id == value.id }
                 }
             }
 
             Button("email.add") {
-                values.append(LabeledValue())
+                let newEmail = LabeledValue()
+                values.append(newEmail)
+                emailValueFocusRequest = newEmail.id
             }
         }
     }
@@ -352,18 +362,24 @@ private struct EditableEmailsSection: View {
 
 private struct EditableWebsitesSection: View {
     @Binding var values: [LabeledValue]
+    @State private var websiteValueFocusRequest: String?
 
     var body: some View {
         Section("section.urls") {
             ForEach($values) { $value in
-                EditableWebsiteRow(value: $value) {
+                EditableWebsiteRow(
+                    value: $value,
+                    valueFocusRequest: websiteValueFocusRequest
+                ) {
                     values.removeAll { $0.id == value.id }
                 }
             }
             .onDelete { values.remove(atOffsets: $0) }
 
             Button("website.add") {
-                values.append(LabeledValue())
+                let newWebsite = LabeledValue()
+                values.append(newWebsite)
+                websiteValueFocusRequest = newWebsite.id
             }
         }
     }
@@ -371,6 +387,7 @@ private struct EditableWebsitesSection: View {
 
 private struct EditableWebsiteRow: View {
     @Binding var value: LabeledValue
+    let valueFocusRequest: String?
     let onDelete: () -> Void
 
     private let labelOptions = [
@@ -388,6 +405,7 @@ private struct EditableWebsiteRow: View {
             keyboardType: .URL,
             textCapitalization: .never,
             removeLabel: "website.remove",
+            valueFocusRequest: valueFocusRequest,
             onDelete: onDelete
         )
     }
@@ -395,17 +413,24 @@ private struct EditableWebsiteRow: View {
 
 private struct EditablePhonesSection: View {
     @Binding var values: [LabeledValue]
+    @State private var phoneValueFocusRequest: String?
 
     var body: some View {
         Section("section.phones") {
             ForEach($values) { $value in
-                EditablePhoneRow(value: $value, presetLabels: phoneLabelOptions) {
+                EditablePhoneRow(
+                    value: $value,
+                    presetLabels: phoneLabelOptions,
+                    valueFocusRequest: phoneValueFocusRequest
+                ) {
                     values.removeAll { $0.id == value.id }
                 }
             }
 
             Button("phone.add") {
-                values.append(LabeledValue())
+                let newPhone = LabeledValue()
+                values.append(newPhone)
+                phoneValueFocusRequest = newPhone.id
             }
         }
     }
@@ -428,6 +453,7 @@ private struct EditablePhonesSection: View {
 private struct EditablePhoneRow: View {
     @Binding var value: LabeledValue
     let presetLabels: [LabelOption]
+    let valueFocusRequest: String?
     let onDelete: () -> Void
     @State private var isPickingCountry = false
     @State private var selectedCountryOverride: PhoneCountry?
@@ -480,6 +506,7 @@ private struct EditablePhoneRow: View {
             TextField("section.phones", text: $value.value)
                 .keyboardType(.phonePad)
                 .autocorrectionDisabled()
+                .focusWhenRequested(fieldID: value.id, request: valueFocusRequest)
                 .onChange(of: value.value) { _, newValue in
                     guard !isFormattingPhone else { return }
                     let formatted = PhoneNumberTextFormatter.format(
@@ -519,6 +546,7 @@ private struct EditablePhoneRow: View {
 
 private struct EditableEmailRow: View {
     @Binding var value: LabeledValue
+    let valueFocusRequest: String?
     let onDelete: () -> Void
 
     var body: some View {
@@ -533,6 +561,7 @@ private struct EditableEmailRow: View {
             keyboardType: .emailAddress,
             textCapitalization: .never,
             removeLabel: "email.remove",
+            valueFocusRequest: valueFocusRequest,
             onDelete: onDelete
         )
     }
@@ -545,6 +574,7 @@ private struct EditableLabeledInputRow: View {
     let keyboardType: UIKeyboardType
     var textCapitalization: TextInputAutocapitalization? = nil
     let removeLabel: LocalizedStringKey
+    var valueFocusRequest: String? = nil
     let onDelete: () -> Void
 
     var body: some View {
@@ -577,6 +607,7 @@ private struct EditableLabeledInputRow: View {
             .textInputAutocapitalization(textCapitalization)
             .keyboardType(keyboardType)
             .autocorrectionDisabled()
+            .focusWhenRequested(fieldID: value.id, request: valueFocusRequest)
     }
 
     private var labelBinding: Binding<String> {
@@ -585,6 +616,35 @@ private struct EditableLabeledInputRow: View {
         } set: { newValue in
             value.label = newValue.googleContactsDisplayLabel
         }
+    }
+
+}
+
+private struct FocusWhenRequestedModifier: ViewModifier {
+    let fieldID: String
+    let request: String?
+    @FocusState private var isFocused: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .focused($isFocused)
+            .onAppear {
+                focusIfRequested(request)
+            }
+            .onChange(of: request) { _, newRequest in
+                focusIfRequested(newRequest)
+            }
+    }
+
+    private func focusIfRequested(_ request: String?) {
+        guard request == fieldID else { return }
+        isFocused = true
+    }
+}
+
+private extension View {
+    func focusWhenRequested(fieldID: String, request: String?) -> some View {
+        modifier(FocusWhenRequestedModifier(fieldID: fieldID, request: request))
     }
 }
 
@@ -1039,18 +1099,24 @@ private enum PhoneNumberTextFormatter {
 
 private struct EditableAddressesSection: View {
     @Binding var addresses: [PostalAddress]
+    @State private var streetFocusRequest: String?
 
     var body: some View {
         Section("section.addresses") {
             ForEach($addresses) { $address in
-                EditableAddressRow(address: $address) {
+                EditableAddressRow(
+                    address: $address,
+                    streetFocusRequest: streetFocusRequest
+                ) {
                     addresses.removeAll { $0.id == address.id }
                 }
             }
             .onDelete { addresses.remove(atOffsets: $0) }
 
             Button("action.addAddress") {
-                addresses.append(PostalAddress())
+                let newAddress = PostalAddress()
+                addresses.append(newAddress)
+                streetFocusRequest = newAddress.id
             }
         }
     }
@@ -1058,6 +1124,7 @@ private struct EditableAddressesSection: View {
 
 private struct EditableAddressRow: View {
     @Binding var address: PostalAddress
+    let streetFocusRequest: String?
     let onDelete: () -> Void
     @State private var isPickingCountry = false
 
@@ -1124,6 +1191,7 @@ private struct EditableAddressRow: View {
 
         TextField("address.street", text: $address.streetAddress)
             .textInputAutocapitalization(.words)
+            .focusWhenRequested(fieldID: address.id, request: streetFocusRequest)
         TextField("address.extended", text: $address.extendedAddress)
             .textInputAutocapitalization(.words)
 
@@ -1344,16 +1412,22 @@ private struct EditableOrganizationFields: View {
 private struct EditableDatesSection: View {
     let title: LocalizedStringKey
     @Binding var dates: [ContactDate]
+    @State private var yearFocusRequest: String?
 
     var body: some View {
         Section(title) {
             ForEach($dates) { $date in
-                EditableContactDateFields(date: $date)
+                EditableContactDateFields(
+                    date: $date,
+                    yearFocusRequest: yearFocusRequest
+                )
             }
             .onDelete { dates.remove(atOffsets: $0) }
 
             Button("action.addDate") {
-                dates.append(ContactDate())
+                let newDate = ContactDate()
+                dates.append(newDate)
+                yearFocusRequest = newDate.id
             }
         }
     }
@@ -1361,6 +1435,7 @@ private struct EditableDatesSection: View {
 
 private struct EditableContactDateFields: View {
     @Binding var date: ContactDate
+    var yearFocusRequest: String? = nil
 
     private var selectedMonthValue: String {
         guard let month = Int(date.month), (1...12).contains(month) else {
@@ -1378,6 +1453,7 @@ private struct EditableContactDateFields: View {
     var body: some View {
         TextField("date.year", text: yearBinding)
             .keyboardType(.numberPad)
+            .focusWhenRequested(fieldID: date.id, request: yearFocusRequest)
 
         Picker("date.month", selection: monthBinding) {
             Text("field.empty").tag("")
@@ -1496,18 +1572,24 @@ private enum DateInputFormatter {
 
 private struct EditableEventsSection: View {
     @Binding var events: [ContactEvent]
+    @State private var labelFocusRequest: String?
 
     var body: some View {
         Section("section.events") {
             ForEach($events) { $event in
-                EditableEventRow(event: $event) {
+                EditableEventRow(
+                    event: $event,
+                    labelFocusRequest: labelFocusRequest
+                ) {
                     events.removeAll { $0.id == event.id }
                 }
             }
             .onDelete { events.remove(atOffsets: $0) }
 
             Button("action.addEvent") {
-                events.append(ContactEvent())
+                let newEvent = ContactEvent()
+                events.append(newEvent)
+                labelFocusRequest = newEvent.id
             }
         }
     }
@@ -1515,6 +1597,7 @@ private struct EditableEventsSection: View {
 
 private struct EditableEventRow: View {
     @Binding var event: ContactEvent
+    let labelFocusRequest: String?
     let onDelete: () -> Void
 
     private let labelOptions = [
@@ -1526,6 +1609,7 @@ private struct EditableEventRow: View {
         HStack(spacing: 8) {
             TextField("field.label", text: labelBinding)
                 .textInputAutocapitalization(.words)
+                .focusWhenRequested(fieldID: event.id, request: labelFocusRequest)
 
             Menu {
                 ForEach(labelOptions) { label in
@@ -1562,18 +1646,24 @@ private struct EditableEventRow: View {
 
 private struct EditableRelationsSection: View {
     @Binding var relations: [Relation]
+    @State private var personFocusRequest: String?
 
     var body: some View {
         Section("section.relations") {
             ForEach($relations) { $relation in
-                EditableRelationRow(relation: $relation) {
+                EditableRelationRow(
+                    relation: $relation,
+                    personFocusRequest: personFocusRequest
+                ) {
                     relations.removeAll { $0.id == relation.id }
                 }
             }
             .onDelete { relations.remove(atOffsets: $0) }
 
             Button("action.addRelation") {
-                relations.append(Relation())
+                let newRelation = Relation()
+                relations.append(newRelation)
+                personFocusRequest = newRelation.id
             }
         }
     }
@@ -1581,6 +1671,7 @@ private struct EditableRelationsSection: View {
 
 private struct EditableRelationRow: View {
     @Binding var relation: Relation
+    let personFocusRequest: String?
     let onDelete: () -> Void
 
     private let labelOptions = [
@@ -1628,6 +1719,7 @@ private struct EditableRelationRow: View {
 
         TextField("relation.person", text: $relation.person)
             .textInputAutocapitalization(.words)
+            .focusWhenRequested(fieldID: relation.id, request: personFocusRequest)
     }
 
     private var labelBinding: Binding<String> {
@@ -1660,18 +1752,24 @@ private struct EditableBiographiesSection: View {
 
 private struct EditableUserDefinedSection: View {
     @Binding var fields: [UserDefinedField]
+    @State private var keyFocusRequest: String?
 
     var body: some View {
         Section("section.userDefined") {
             ForEach($fields) { $field in
-                EditableUserDefinedRow(field: $field) {
+                EditableUserDefinedRow(
+                    field: $field,
+                    keyFocusRequest: keyFocusRequest
+                ) {
                     fields.removeAll { $0.id == field.id }
                 }
             }
             .onDelete { fields.remove(atOffsets: $0) }
 
             Button("action.addUserDefined") {
-                fields.append(UserDefinedField())
+                let newField = UserDefinedField()
+                fields.append(newField)
+                keyFocusRequest = newField.id
             }
         }
     }
@@ -1679,12 +1777,14 @@ private struct EditableUserDefinedSection: View {
 
 private struct EditableUserDefinedRow: View {
     @Binding var field: UserDefinedField
+    let keyFocusRequest: String?
     let onDelete: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
             TextField("field.label", text: $field.key)
                 .textInputAutocapitalization(.words)
+                .focusWhenRequested(fieldID: field.id, request: keyFocusRequest)
 
             Button(action: onDelete) {
                 Text("🅧")

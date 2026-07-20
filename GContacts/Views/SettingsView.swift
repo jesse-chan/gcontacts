@@ -71,10 +71,9 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("settings.title")
-        .confirmationDialog(
+        .alert(
             "googleAuth.disconnectTitle",
-            isPresented: $isConfirmingDisconnect,
-            titleVisibility: .visible
+            isPresented: $isConfirmingDisconnect
         ) {
             Button("googleAuth.disconnectConfirm", role: .destructive) {
                 Task {

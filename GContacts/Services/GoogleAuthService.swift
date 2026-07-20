@@ -6,7 +6,7 @@ import UIKit
 @Observable
 final class GoogleAuthService {
     private let contactsScope = "https://www.googleapis.com/auth/contacts"
-    private let installationMarkerKey = "googleAuth.installationInitialized"
+    private let clientIDMarkerKey = "googleAuth.configuredClientID"
     private let defaults: UserDefaults
 
     private(set) var user: GoogleSignedInUser?
@@ -18,10 +18,7 @@ final class GoogleAuthService {
     var errorMessage: String?
 
     var isConfigured: Bool {
-        guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String else {
-            return false
-        }
-        return !clientID.isEmpty && !clientID.contains("REPLACE_WITH")
+        configuredClientID != nil
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -68,7 +65,16 @@ final class GoogleAuthService {
                 self.isSigningIn = false
 
                 if let error {
-                    self.setLocalizedError(error.isCanceledGoogleSignIn ? "googleAuth.signInCancelled" : "googleAuth.signInFailed")
+                    if error.isCanceledGoogleSignIn {
+                        // Closing the system authentication browser is an intentional
+                        // user action. Return to the sign-in screen without presenting
+                        // a failure alert or terminating the app.
+                        self.clearError()
+                        self.user = nil
+                        return
+                    }
+
+                    self.setLocalizedError("googleAuth.signInFailed")
                     self.user = nil
                     return
                 }
@@ -79,6 +85,25 @@ final class GoogleAuthService {
                     return
                 }
 
+                guard self.hasRequiredContactsScope(result.user) else {
+                    // Google allows the user to continue without selecting an optional
+                    // scope. ContactDeck cannot function without contacts access, so
+                    // revoke the incomplete grant before retrying. A local sign-out is
+                    // insufficient because Google would otherwise remember the partial
+                    // authorization on the next consent screen.
+                    do {
+                        try await GIDSignIn.sharedInstance.disconnect()
+                    } catch {
+                        GIDSignIn.sharedInstance.signOut()
+                    }
+                    self.setLocalizedError("googleAuth.contactsPermissionRequired")
+                    self.user = nil
+                    return
+                }
+
+                if let configuredClientID = self.configuredClientID {
+                    self.defaults.set(configuredClientID, forKey: self.clientIDMarkerKey)
+                }
                 self.user = GoogleSignedInUser(user: result.user)
             }
         }
@@ -144,23 +169,22 @@ final class GoogleAuthService {
         }
 
         do {
-            let hadExistingLocalAppData = hasExistingLocalAppData
             clearLegacyContactCache()
 
-            if !defaults.bool(forKey: installationMarkerKey) {
-                if hadExistingLocalAppData {
-                    // Seed the marker when upgrading an existing installation.
-                    defaults.set(true, forKey: installationMarkerKey)
-                } else {
-                    if GIDSignIn.sharedInstance.hasPreviousSignIn() {
-                        _ = try await GIDSignIn.sharedInstance.restorePreviousSignIn()
-                        try await GIDSignIn.sharedInstance.disconnect()
-                    }
+            guard let configuredClientID else {
+                setLocalizedError("googleAuth.notConfigured")
+                user = nil
+                return
+            }
 
-                    defaults.set(true, forKey: installationMarkerKey)
-                    user = nil
-                    return
-                }
+            if defaults.string(forKey: clientIDMarkerKey) != configuredClientID {
+                // Tokens issued for a previous OAuth project cannot be refreshed after
+                // that project is replaced or deleted. Clear them locally without
+                // calling disconnect, which may itself fail for the deleted project.
+                GIDSignIn.sharedInstance.signOut()
+                defaults.set(configuredClientID, forKey: clientIDMarkerKey)
+                user = nil
+                return
             }
 
             guard GIDSignIn.sharedInstance.hasPreviousSignIn() else {
@@ -169,10 +193,15 @@ final class GoogleAuthService {
             }
 
             let restoredUser = try await GIDSignIn.sharedInstance.restorePreviousSignIn()
+            guard hasRequiredContactsScope(restoredUser) else {
+                GIDSignIn.sharedInstance.signOut()
+                setLocalizedError("googleAuth.contactsPermissionRequired")
+                user = nil
+                return
+            }
             user = GoogleSignedInUser(user: restoredUser)
         } catch {
             if error.isNoPreviousGoogleSignIn {
-                defaults.set(true, forKey: installationMarkerKey)
                 user = nil
                 return
             }
@@ -188,12 +217,17 @@ final class GoogleAuthService {
             .forEach(defaults.removeObject(forKey:))
     }
 
-    private var hasExistingLocalAppData: Bool {
-        defaults.dictionaryRepresentation().keys.contains {
-            $0 == "appTheme" ||
-                $0 == "appLanguage" ||
-                $0.hasPrefix("googlePeopleContacts.")
+    private var configuredClientID: String? {
+        guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
+              !clientID.isEmpty,
+              !clientID.contains("REPLACE_WITH") else {
+            return nil
         }
+        return clientID
+    }
+
+    private func hasRequiredContactsScope(_ user: GIDGoogleUser) -> Bool {
+        user.grantedScopes?.contains(contactsScope) == true
     }
 }
 

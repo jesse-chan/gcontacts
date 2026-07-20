@@ -1,4 +1,3 @@
-import Darwin
 import GoogleSignInSwift
 import SwiftUI
 import UIKit
@@ -81,7 +80,9 @@ struct AppShellView: View {
 struct StartupAuthGateView: View {
     @Environment(GoogleAuthService.self) private var googleAuthService
     @State private var isShowingSignInFailure = false
+    @State private var signInFailureTitle = ""
     @State private var signInFailureMessage = ""
+    @State private var shouldRetrySignInAfterAlert = false
 
     var body: some View {
         Group {
@@ -107,9 +108,17 @@ struct StartupAuthGateView: View {
         .onAppear {
             presentSignInFailureIfNeeded(googleAuthService.errorMessage)
         }
-        .alert(SystemAuthLocalization.string("error.title"), isPresented: $isShowingSignInFailure) {
+        .alert(signInFailureTitle, isPresented: $isShowingSignInFailure) {
             Button(SystemAuthLocalization.string("action.ok"), role: .cancel) {
-                exit(0)
+                guard shouldRetrySignInAfterAlert else { return }
+                shouldRetrySignInAfterAlert = false
+
+                Task { @MainActor in
+                    // Let the system alert finish dismissing before presenting the
+                    // authentication browser again.
+                    try? await Task.sleep(for: .milliseconds(350))
+                    googleAuthService.signIn()
+                }
             }
         } message: {
             Text(signInFailureMessage)
@@ -122,7 +131,15 @@ struct StartupAuthGateView: View {
             let message,
             !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else { return }
-        if let key = googleAuthService.errorMessageKey {
+        let key = googleAuthService.errorMessageKey
+        if key == "googleAuth.contactsPermissionRequired" {
+            signInFailureTitle = SystemAuthLocalization.string("googleAuth.contactsPermissionRequiredTitle")
+            shouldRetrySignInAfterAlert = true
+        } else {
+            signInFailureTitle = SystemAuthLocalization.string("error.title")
+            shouldRetrySignInAfterAlert = false
+        }
+        if let key {
             signInFailureMessage = SystemAuthLocalization.string(key)
         } else {
             signInFailureMessage = message

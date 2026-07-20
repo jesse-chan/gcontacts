@@ -100,7 +100,7 @@ struct ContactDetailView: View {
         .sheet(isPresented: $isEditing) {
             ContactEditorView(contact: draft)
         }
-        .confirmationDialog("contacts.delete.title", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+        .alert("contacts.delete.title", isPresented: $isConfirmingDelete) {
             Button("action.delete", role: .destructive) {
                 Task {
                     await store.delete(draft)

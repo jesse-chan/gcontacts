@@ -60,6 +60,8 @@
 "field.label" = "標籤";
 "field.value" = "值";
 "googleAuth.configurationNote" = "在 Google Cloud 建立 iOS OAuth client 後，請到 target build settings 設定 GOOGLE_IOS_CLIENT_ID 與 GOOGLE_REVERSED_CLIENT_ID。";
+"googleAuth.contactsPermissionRequired" = "ContactDeck 必須取得 Google 聯絡人存取權才能正常運作。請重新登入，勾選「查看、編輯、下載及永久刪除您的聯絡人」，再按「繼續」。";
+"googleAuth.contactsPermissionRequiredTitle" = "需要聯絡人權限";
 "googleAuth.disconnect" = "登出並清除本機資料";
 "googleAuth.disconnectConfirm" = "登出並清除";
 "googleAuth.disconnecting" = "正在登出並清除本機資料...";
