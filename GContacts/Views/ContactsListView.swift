@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ContactsListView: View {
     @Environment(ContactStore.self) private var store
-    @Environment(\.locale) private var locale
     @Binding var selectedLabel: ContactLabelSelection
     let scrollToTopTrigger: Int
     @State private var searchText = ""
@@ -133,12 +132,13 @@ struct ContactsListView: View {
         }
     }
 
-    private var navigationTitle: String {
-        let contactsTitle = String(localized: "contacts.title", locale: locale)
+    private var navigationTitle: Text {
         guard selectedLabel.id != nil else {
-            return contactsTitle
+            return Text("contacts.title")
         }
-        return "\(contactsTitle) - \(selectedLabel.name)"
+        return Text("contacts.title")
+            + Text(verbatim: " - ")
+            + Text(verbatim: selectedLabel.name)
     }
 
     private var listIdentity: String {

@@ -18,6 +18,7 @@ struct ContactLabelSelection: Equatable {
 struct AppShellView: View {
     @Environment(ContactStore.self) private var contactStore
     @Environment(GoogleAuthService.self) private var googleAuthService
+    @Environment(\.locale) private var locale
     @State private var selectedTab: AppTab = .contacts
     @State private var selectedLabel = ContactLabelSelection.all
     @State private var contactListScrollToTopTrigger = 0
@@ -30,6 +31,7 @@ struct AppShellView: View {
                     scrollToTopTrigger: contactListScrollToTopTrigger
                 )
             }
+            .id("contacts-\(locale.identifier)")
             .tabItem {
                 Label("tab.contacts", systemImage: "person.crop.circle")
             }
@@ -38,6 +40,7 @@ struct AppShellView: View {
             NavigationStack {
                 LabelsView()
             }
+            .id("labels-\(locale.identifier)")
             .tabItem {
                 Label("tab.labels", systemImage: "tag")
             }
@@ -46,6 +49,7 @@ struct AppShellView: View {
             NavigationStack {
                 SettingsView()
             }
+            .id("settings-\(locale.identifier)")
             .tabItem {
                 Label("tab.settings", systemImage: "gearshape")
             }
